@@ -1,0 +1,6 @@
+_deps/
+build/
+src/webview/linux_process/build/
+packages/
+.DS_Store
+.vscode/
