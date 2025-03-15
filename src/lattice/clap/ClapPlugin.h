@@ -94,8 +94,8 @@ private:
     lattice::Server server;
     // Add GUI members
     std::unique_ptr<choc::ui::WebView> webview;
-    uint32_t currentWidth_ = 800;  // Default width
-    uint32_t currentHeight_ = 600; // Default height
+    uint32_t currentWidth = 800;  // Default width
+    uint32_t currentHeight = 600; // Default height
 
     // Utility functions for parameter handling
     void sendParameterValueToHost(clap_id paramId, double value) noexcept;

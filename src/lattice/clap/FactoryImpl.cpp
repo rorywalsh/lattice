@@ -6,7 +6,7 @@
 #include "../LatticeProcessor.h"
 #include "ClapPlugin.h"
 #include <iostream>
-#include "CabbagePluginInfo.h"
+#include PLUGIN_INFO_HEADER  // Include the dynamically generated header
 
 namespace impl
 {
@@ -41,7 +41,7 @@ namespace impl
         }
 
         // Host will own 'plugin'
-        auto plugin = CabsProcessorPluginFactory::createPlugin(host); // No need for user to specify inputs/outputs
+        auto plugin = LatticeProcessorPluginFactory::createPlugin(host); // No need for user to specify inputs/outputs
                 
         return plugin->clapPlugin();
     }

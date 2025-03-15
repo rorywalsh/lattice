@@ -15,6 +15,7 @@ GainProcessor::GainProcessor(int numInputs, int numOutputs)
     : Processor(numInputs, numOutputs)
 {
     addParameter({"Gain", 0, 1});
+    setEditorSize(400, 300);
 }
 
 void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSize)

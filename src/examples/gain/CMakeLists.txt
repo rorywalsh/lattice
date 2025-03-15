@@ -3,21 +3,34 @@ set(PLUGIN_NAME GainPlugin)
 set(SOURCE_FILES
     GainProcessor.cpp
     GainProcessor.h
-    ${CMAKE_SOURCE_DIR}/src/lattice/clap/Factory.cpp
+    ${CMAKE_SOURCE_DIR}/src/lattice/LatticeProcessor.h
+    ${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.h
+    ${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.cpp
+    ${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.h
+    ${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/lattice/clap/ClapPlugin.h
+    ${CMAKE_SOURCE_DIR}/src/lattice/clap/ClapPlugin.cpp
+    ${CMAKE_SOURCE_DIR}/src/lattice/clap/FactoryImpl.cpp
 )
+
+# Apple-Specific Sources
+if (APPLE)    
+    list(APPEND SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/lattice/clap/platform/MacParent.mm)
+endif()
 
 add_library(${PLUGIN_NAME}-impl STATIC ${SOURCE_FILES})
 
 # Generate CabbagePluginInfo.h header
 generatePluginInfoHeader(${PLUGIN_NAME}-impl
-    UNIQUE_ID "your.reversed.domain.name.GainPlugin"
-    NAME "GainPlugin"
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}  # Output directory for the header
+    UNIQUE_ID "your.reversed.domain.name.${PLUGIN_NAME}"
+    NAME "${PLUGIN_NAME}"
     VENDOR "CabbageAudio"
     URL "https://cabbageaudio.com"
     MANUAL_URL "https://docs.cabbageaudio.com"
     SUPPORT_URL "https://support.cabbageaudio.com"
     VERSION "1.0.0"
-    DESCRIPTION "Gain Plugin"
+    DESCRIPTION "${PLUGIN_NAME} Plugin"
     FEATURES 
         CLAP_PLUGIN_FEATURE_AUDIO_EFFECT 
         CLAP_PLUGIN_FEATURE_UTILITY 
@@ -32,6 +45,12 @@ target_include_directories(${PLUGIN_NAME}-impl PRIVATE
     ${json_SOURCE_DIR}/include
     ${httplib_SOURCE_DIR}
 )
+
+# Define a preprocessor macro for the header name
+target_compile_definitions(${PLUGIN_NAME}-impl PRIVATE 
+    PLUGIN_INFO_HEADER="${PLUGIN_NAME}Info.h"
+)
+
 
 # Compiler and Platform-Specific Options
 if (WIN32)

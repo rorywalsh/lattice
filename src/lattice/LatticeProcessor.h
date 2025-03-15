@@ -1,7 +1,7 @@
 /*
     MIT License
 
-    Copyright (c) 2024 Rory Walsh
+    Copyright (c) 2025 Rory Walsh
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -89,13 +89,10 @@ public:
     // Constructor: Initializes the plugin with a given number of inputs and outputs
     Processor(int numInputs, int numOutputs)
         : numInputs(numInputs), numOutputs(numOutputs)
-    {
-    }
+    {}
 
     // Virtual destructor
-    virtual ~Processor()
-    {
-    }
+    virtual ~Processor(){}
 
     // Pure virtual function to process audio data
     virtual void process(float** inputs, float** outputs, std::size_t blockSize) = 0;
@@ -112,17 +109,19 @@ public:
     // Prepare to play method - gets called before processing starts
     virtual void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) = 0;
     
-    // Get the number of audio outputs
-    int getNumOutputs()
+    void setEditorSize(int w, int h)
     {
-        return numOutputs;
+        editorWidth = w;
+        editorHeight = h;
     }
 
-    // Get the number of audio inputs
-    int getNumInputs()
-    {
-        return numInputs;
-    }
+    // Get the editor width and height
+    int getEditorWidth(){   return editorWidth;     }
+    int getEditorHeight(){   return editorHeight;   }
+    
+    // Get the number of audio outputs and inputs
+    int getNumOutputs(){    return numOutputs;      }
+    int getNumInputs(){     return numInputs;       }
 
     // Get the list of parameters
     std::vector<Parameter>& getParameters()
@@ -155,9 +154,12 @@ public:
         return noteEvents;
     }
 
+
 private:
     int numInputs = 0;   // Number of audio inputs
     int numOutputs = 0;  // Number of audio outputs
+    int editorWidth = 800;
+    int editorHeight = 800;
     std::vector<Parameter> parameters; // Vector of parameters
     std::deque<NoteEvent> noteEvents; // Fifo for noteEvents
 };

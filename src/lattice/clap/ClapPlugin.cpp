@@ -33,6 +33,15 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
         sendParameterValueToHost(paramId, value);
     };
     
+    processor.sendWebViewMessage = [this](nlohmann::json j) {
+        if (webview)
+        {
+            webview->evaluateJavascript("hostMessageCallback(" +
+                                        j.dump() + ");");
+        }
+    };
+    
+    
     
 }
 
@@ -170,7 +179,7 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
                  h["value"] = p->value;
                  j["data"] = h;
                  
-                 webview->evaluateJavascript("updateParameterFromHost(" +
+                 webview->evaluateJavascript("hostMessageCallback(" +
                                              j.dump() + ");");
                  
              }
@@ -222,8 +231,24 @@ bool ClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) noexcep
            strcmp(api, CLAP_WINDOW_API_X11) == 0;
 }
 
+
+// Utility function to send parameter changes to host
+void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept {
+    if (auto* host = _host.host()) {
+        if (auto* params = (const clap_host_params*) host->get_extension(host, CLAP_EXT_PARAMS)) {
+            params->request_flush(host);
+            processor.setParameter(paramId, value);
+        }
+    }
+}
+
+
+//========================================================================================
+
 bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
 {
+    guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
+
     try {
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
@@ -234,7 +259,7 @@ bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
             return false;
 
         // Add JavaScript interface for parameter control
-        webview->bind("setParameterFromUI", [this](const choc::value::ValueView& args) -> choc::value::Value {
+        webview->bind("sendMessageFromUI", [this](const choc::value::ValueView& args) -> choc::value::Value {
             nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
             processor.onMesssgeFromWebView(j);
             return {};
@@ -266,15 +291,15 @@ bool ClapPlugin::guiSetScale(double) noexcept
 
 bool ClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept 
 {
-    currentWidth_ = width;
-    currentHeight_ = height;
+    currentWidth = width;
+    currentHeight = height;
     return webview != nullptr;
 }
 
 bool ClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept 
 {
-    *width = currentWidth_;
-    *height = currentHeight_;
+    *width = currentWidth;
+    *height = currentHeight;
     return true;
 }
 
@@ -329,15 +354,5 @@ bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
     catch (const std::exception &e)
     {
         return false;
-    }
-}
-
-// Utility function to send parameter changes to host
-void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept {
-    if (auto* host = _host.host()) {
-        if (auto* params = (const clap_host_params*) host->get_extension(host, CLAP_EXT_PARAMS)) {
-            params->request_flush(host);
-            processor.setParameter(paramId, value);
-        }
     }
 }

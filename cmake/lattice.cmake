@@ -1,10 +1,11 @@
 function(generatePluginInfoHeader TARGET)
-    set(oneValueArgs UNIQUE_ID NAME VENDOR URL MANUAL_URL SUPPORT_URL VERSION DESCRIPTION)
+    set(oneValueArgs OUTPUT_DIRECTORY UNIQUE_ID NAME VENDOR URL MANUAL_URL SUPPORT_URL VERSION DESCRIPTION)
     set(multiValueArgs FEATURES)  # FEATURES can take multiple values
 
     cmake_parse_arguments(PLUGIN_INFO "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Default values
+    set(DEFAULT_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
     set(DEFAULT_UNIQUE_ID "default.plugin.id")
     set(DEFAULT_NAME "DefaultPlugin")
     set(DEFAULT_VENDOR "UnknownVendor")
@@ -15,6 +16,9 @@ function(generatePluginInfoHeader TARGET)
     set(DEFAULT_DESCRIPTION "Default plugin description")
 
     # Apply defaults if missing
+    if(NOT PLUGIN_INFO_OUTPUT_DIRECTORY)
+        set(PLUGIN_INFO_OUTPUT_DIRECTORY "${DEFAULT_OUTPUT_DIRECTORY}")
+    endif()
     if(NOT PLUGIN_INFO_UNIQUE_ID)
         set(PLUGIN_INFO_UNIQUE_ID "${DEFAULT_UNIQUE_ID}")
     endif()
@@ -47,8 +51,11 @@ function(generatePluginInfoHeader TARGET)
     endforeach()
     set(FEATURES_ARRAY "${FEATURES_ARRAY}nullptr")  # Ensure nullptr is last
 
-    # Generate a header file containing a constexpr variable
-    set(HEADER_FILE "${CMAKE_BINARY_DIR}/CabbagePluginInfo.h")
+    # Derive the header file name from the plugin name
+    set(HEADER_NAME "${PLUGIN_INFO_NAME}Info.h")
+    set(HEADER_FILE "${PLUGIN_INFO_OUTPUT_DIRECTORY}/${HEADER_NAME}")
+
+    # Generate the header file
     file(WRITE ${HEADER_FILE} 
 "#pragma once
 
@@ -70,6 +77,11 @@ static constexpr clap_plugin_descriptor descriptor = {
 };
 ")
 
-    # Add the generated header to the target
-    target_include_directories(${TARGET} PRIVATE ${CMAKE_BINARY_DIR})
+    # Add the generated header to the target's include directories
+    target_include_directories(${TARGET} PRIVATE ${PLUGIN_INFO_OUTPUT_DIRECTORY})
+
+    # Define a preprocessor macro for the header name
+    target_compile_definitions(${TARGET} PRIVATE 
+        PLUGIN_INFO_HEADER="${HEADER_NAME}"
+    )
 endfunction()
