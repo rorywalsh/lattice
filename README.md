@@ -1,4 +1,4 @@
-<div align="center" style="background-color: #2d2d2d; border-radius: 15px; padding: 20px;">
+<div align="center">
 <img src="./lattice.svg" alt="Lattice Logo"></img>
 </div>
 
