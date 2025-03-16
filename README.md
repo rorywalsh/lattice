@@ -1,5 +1,6 @@
 <div align="center">
 <img src="./lattice.svg" alt="Lattice Logo"></img>
+<br>
 </div>
 
 
