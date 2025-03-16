@@ -6,19 +6,19 @@
 pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 {
     //create a new instance of GainProcessor 
-    auto* processor = new GainProcessor(2, 2);
+    auto* processor = new FlangerProcessor(2, 2);
     return new pluginType(host, *processor);
 }
 //===================================================================================
 
-GainProcessor::GainProcessor(int numInputs, int numOutputs)
+FlangerProcessor::FlangerProcessor(int numInputs, int numOutputs)
     : Processor(numInputs, numOutputs)
 {
     addParameter({"Gain", 0, 1});
     setEditorSize(400, 300);
 }
 
-void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
+void FlangerProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
 {
     const auto channels = getNumInputs();
     auto& noteEvents = getNoteEvents();
@@ -32,11 +32,11 @@ void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSi
     for (uint32_t i = 0; i < blockSize; i++)
     {
         for (uint32_t ch = 0; ch < channels; ++ch)
-            outputs[ch][i] = inputs[ch][i]*getParameter(0);
+            outputs[ch][i] = inputs[ch][i]*getParameter("Gain");
     }
 }
 
-void GainProcessor::onMesssgeFromWebView(nlohmann::json j)
+void FlangerProcessor::onMesssgeFromWebView(nlohmann::json j)
 {
     std::cout << j.at(0).dump(4);
     float value = j.at(0).value("value", 0.f);
@@ -44,17 +44,14 @@ void GainProcessor::onMesssgeFromWebView(nlohmann::json j)
     sendParameterUpdateToHost(paramIdx, value);
 }
 
-void GainProcessor::setParameter(int paramId, double value)
+// This can be called from the host - if so update the
+// corresponding parameter value using updateParameter() function
+void FlangerProcessor::setParameter(int paramId, double value)
 {
     getParameters()[paramId].value = value;
 }
 
-double GainProcessor::getParameter(int paramId)
-{
-    return getParameters()[paramId].value;
-}
-
-void GainProcessor::prepareToPlay(double /*sampleRate*/, uint32_t /*minFrameCount*/, uint32_t /*maxFrameCount*/)
+void FlangerProcessor::prepareToPlay(double /*sampleRate*/, uint32_t /*minFrameCount*/, uint32_t /*maxFrameCount*/)
 {
     
 }

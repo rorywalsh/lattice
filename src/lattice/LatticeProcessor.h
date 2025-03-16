@@ -28,6 +28,7 @@
 #include <vector>
 #include <lattice/clap/ClapPlugin.h>
 #include <nlohmann/json.hpp>
+#include <unordered_map>
 
 namespace lattice
 {
@@ -103,8 +104,19 @@ public:
     // Pure virtual function to handle messages from the web view
     virtual void onMesssgeFromWebView(nlohmann::json j) = 0;
 
-    // Pure virtual function to get a parameter value
-    virtual double getParameter(int paramId) = 0;
+    // Function to get a parameter value
+    double getParameter(int paramId){   return getParameters()[paramId].value;  }
+
+    // Function to get parameter value via the parameter's name
+    double getParameter(const std::string name)
+    {
+        auto it = parameterMap.find(name);
+        if (it != parameterMap.end())
+            return it->second->value;
+
+        return 0.0;
+    }
+
 
     // Prepare to play method - gets called before processing starts
     virtual void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) = 0;
@@ -133,6 +145,7 @@ public:
     void addParameter(lattice::Processor::Parameter parameter)
     {
         parameters.push_back(parameter);
+        parameterMap[parameter.name] = &parameters.back(); // Fast lookup
     }
     
     // Function pointer to send parameter updates to the host
@@ -161,6 +174,7 @@ private:
     int editorWidth = 800;
     int editorHeight = 800;
     std::vector<Parameter> parameters; // Vector of parameters
+    std::unordered_map<std::string, Parameter*> parameterMap; // Map for fast lookup by name
     std::deque<NoteEvent> noteEvents; // Fifo for noteEvents
 };
 

@@ -1,4 +1,4 @@
-function(generatePluginInfoHeader TARGET)
+function(generate_plugin_header TARGET)
     set(oneValueArgs OUTPUT_DIRECTORY UNIQUE_ID NAME VENDOR URL MANUAL_URL SUPPORT_URL VERSION DESCRIPTION)
     set(multiValueArgs FEATURES)  # FEATURES can take multiple values
 
@@ -85,3 +85,26 @@ static constexpr clap_plugin_descriptor descriptor = {
         PLUGIN_INFO_HEADER="${HEADER_NAME}"
     )
 endfunction()
+
+# ==========================================================================
+# Set teh lattice source files
+set(LATTICE_SOURCE_FILES
+    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeProcessor.h"
+    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.h"
+    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.cpp"
+    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.h"
+    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.cpp"
+    "${CMAKE_SOURCE_DIR}/src/lattice/clap/ClapPlugin.h"
+    "${CMAKE_SOURCE_DIR}/src/lattice/clap/ClapPlugin.cpp"
+    "${CMAKE_SOURCE_DIR}/src/lattice/clap/FactoryImpl.cpp"
+)
+
+# ======================================================================
+# Set the Lattice include directories
+set(LATTICE_INCLUDE_DIRS
+    ${clap_SOURCE_DIR}/include
+    ${choc_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+    ${json_SOURCE_DIR}/include
+    ${httplib_SOURCE_DIR}
+)

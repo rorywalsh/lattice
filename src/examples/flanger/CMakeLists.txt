@@ -1,8 +1,8 @@
-set(PLUGIN_NAME GainPlugin)
+set(PLUGIN_NAME FlangerPlugin)
 
 set(SOURCE_FILES
-    GainProcessor.cpp
-    GainProcessor.h
+    FlangerProcessor.cpp
+    FlangerProcessor.h
     ${LATTICE_SOURCE_FILES} # Include lattice source files
 )
 
@@ -13,7 +13,7 @@ endif()
 
 add_library(${PLUGIN_NAME}-impl STATIC ${SOURCE_FILES})
 
-# Generate plugin header - this will define the project properties
+# Generate CabbagePluginInfo.h header
 generate_plugin_header(${PLUGIN_NAME}-impl
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}  # Output directory for the header
     UNIQUE_ID "your.reversed.domain.name.${PLUGIN_NAME}"
@@ -33,6 +33,7 @@ generate_plugin_header(${PLUGIN_NAME}-impl
 # Include Paths
 target_include_directories(${PLUGIN_NAME}-impl PRIVATE 
     ${LATTICE_INCLUDE_DIRS}
+    ${aurora_SOURCE_DIR}/include
 )
 
 # Define a preprocessor macro for the header name

@@ -5,15 +5,41 @@
 #include <vector>
 #include "lattice/clap/ClapPlugin.h" // Include the necessary CLAP headers
 #include "lattice/LatticeProcessor.h"
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include "Del.h"
+#include "Osc.h"
 
 //===========================================================
 
 
 class FlangerProcessor : public lattice::Processor {
     
+    static float scl(float a, float b) { return a * b; }
+	static float lfoFun(double x, const std::vector<float>* nop) {
+		return Aurora::cos<float>(x) * 0.46 + 0.54;
+	}
+
+	struct Flanger {
+		Aurora::Osc<float, lfoFun> lfo;
+		Aurora::Del<float, Aurora::vdelayi> delay;
+		Aurora::BinOp<float, scl> gain;
+		float maxDel;
+
+		Flanger(float maxDt, float sr)
+			: lfo(sr), delay(maxDt, sr), gain(), maxDel(maxDt) {}
+
+		const std::vector<float>& operator()(const std::vector<float>& in, float fr,
+			float fdb, float g, float maxDel) {
+			lfo.vsize(in.size());
+			return gain(delay(in, lfo(maxDel, fr), fdb), g);
+		}
+
+		void reset(float sr) {
+			lfo.reset(sr);
+			delay.reset(maxDel, sr);
+		}
+
+	};
+
 public:
     // Constructor that initializes the CLAP plugin
     FlangerProcessor(int numInputs, int numOutputs);
@@ -37,4 +63,6 @@ private:
     // Number of audio inputs and outputs
     int numInputs = 0;
     int numOutputs = 0;
+    Flanger flangerLeft, flangerRight;
+    std::vector<float> inputLeft, inputRight;
 };

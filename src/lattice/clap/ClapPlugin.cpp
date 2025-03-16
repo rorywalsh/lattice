@@ -23,7 +23,7 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
 {
 
     auto rootPath = lattice::File::getResourceDir();
-    
+   
     if (!server.isThreadRunning())
         server.start(rootPath);
     

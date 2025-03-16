@@ -1,13 +1,13 @@
-<div align="center">
+<div align="center" style="background-color: #2d2d2d; border-radius: 15px; padding: 20px;">
 <img src="./lattice.svg" alt="Lattice Logo"></img>
 <br>
-  <span style="font-size: 24px; font-weight: bold; font-family: Arial;">Lattice</span>
-  <br>
-  <br>
+    <span style="font-size: 24px; font-weight: bold; font-family: Arial; color: white;">Lattice</span>
 </div>
+<br>
 
 
-Lattice is a simple plugin API that provides a thin wrapper around the CLAP plugin framework. It was developed as part of the Cabbage 3 Csound plugin framework. Unlike Cabbage, Lattice does not use Csound. In fact, it provides no DSP classes at all. Additionally, unlike most plugin frameworks, the UI is entirely provided in a webview. This means you do not have direct access to the traditional 'editor.' Communication between the webview and the plugin processor is handled through various function callbacks that transmit and receive JSON strings.
+
+Lattice is a simple plugin API that provides a thin wrapper around the CLAP plugin framework. It was developed as part of the Cabbage 3 Csound plugin framework. Unlike Cabbage, Lattice does not use Csound. In fact, it provides no DSP classes at all (although the example make use of the [Aurora](https://github.com/vlazzarini/aurora) library. Additionally, unlike most plugin frameworks, the UI is entirely provided in a webview. This means you do not have direct access to the traditional 'editor.' Communication between the webview and the plugin processor is handled through various function callbacks that transmit and receive JSON strings.
 
 This wrapper does not provide nearly the same level of functionality as the full CLAP framework itself. However, I'm sharing it in the hope that some people might find it useful.
 
@@ -24,9 +24,6 @@ virtual void setParameter(int paramId, double value) = 0;
 
 // Pure virtual function to handle messages from the web view
 virtual void onMesssgeFromWebView(nlohmann::json j) = 0;
-
-// Pure virtual function to get a parameter value
-virtual double getParameter(int paramId) = 0;
 
 // Prepare to play method - gets called before processing starts
 virtual void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) = 0;
@@ -60,8 +57,8 @@ Messages will be sent to the web UI whenever a parameter is updated or if your p
     {
         "command": "parameterChange"
         "data":{
-            "paramId": number,
-            "value": number
+                "paramId": number,
+                "value": number
         }
     }
 ]
@@ -82,7 +79,7 @@ cmake --build build
 
 The project level `CMakeLists.txt` file has a `generate_plugin_header` that can be used to set various plugin parameters such name, vendor, id, etc. 
 
-### Dependencies
+### Lattice Dependencies
 
 * [Clap](https://github.com/free-audio/clap.git) - The API this framework is built upon 
 * [Clap Wrapper](https://github.com/free-audio/clap-wrapper) - Provides wrapper for various plugin formats
@@ -90,4 +87,3 @@ The project level `CMakeLists.txt` file has a `generate_plugin_header` that can 
 * [Nlohmann JSON](https://github.com/nlohmann/json.git) - Extensive C++ JSON framework  
 * [Choc](https://github.com/Tracktion/choc) - A mixed bag of handy C++ classes - provides the webview class for Lattice
 * [cpp-httplib](https://github.com/yhirose/cpp-httplib.git) - A HTTP/HTTPS library, used to server the webview sources
-

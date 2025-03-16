@@ -34,6 +34,9 @@ set(CLAP_WRAPPER_OUTPUT_NAME "${PROJECT_NAME}")
 set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
 
 include(cmake/Dependencies.cmake)
+
+# Set LATTICE_INCLUDE_DIRS, and LATTICE_SOURCE_FILES
+# Also defines the generate_plugin_header function
 include(cmake/lattice.cmake)
 
 include_directories(
@@ -45,3 +48,4 @@ include_directories(
 # Add Plugin Directories
 # ----------------------------
 add_subdirectory(src/examples/gain)
+add_subdirectory(src/examples/flanger)

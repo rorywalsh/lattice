@@ -38,8 +38,27 @@ FetchContent_Declare(
 FetchContent_Declare(
     httplib
     GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-    GIT_TAG master  # Change to a specific tag like v0.13.0 for stability
+    GIT_TAG master  
 )
 
-# Make all dependencies available
+FetchContent_Declare(
+    aurora
+    GIT_REPOSITORY https://github.com/vlazzarini/aurora.git
+    GIT_TAG master  
+)
+
+# Make all dependencies available except aurora
 FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json httplib)
+
+# Enable OLD behavior for FetchContent_Populate to silence the warning
+cmake_policy(SET CMP0169 OLD)
+
+# Fetch aurora but do not add it to the build
+FetchContent_GetProperties(aurora)
+if(NOT aurora_POPULATED)
+    FetchContent_Populate(aurora)
+    # Do NOT call add_subdirectory for aurora
+endif()
+
+# Reset policy to default (optional, but good practice)
+cmake_policy(SET CMP0169 NEW)
