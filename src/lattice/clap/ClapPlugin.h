@@ -45,25 +45,10 @@ public:
         return isInput ? 1 : 0;
     }
     
-    uint32_t paramsCount() const noexcept override
-    {
-        return 1;
-    }
-    
-    bool implementsParams() const noexcept override
-    {
-        return true;
-    }
-    
-    bool implementsNotePorts() const noexcept override
-    {
-        return true;
-    }
-
-    bool implementsAudioPorts() const noexcept override
-    {
-        return true;
-    }
+    uint32_t paramsCount() const noexcept override;
+    bool implementsParams() const noexcept override{       return true;    }
+    bool implementsNotePorts() const noexcept override{    return true;    }
+    bool implementsAudioPorts() const noexcept override{   return true;    }
     
 //    bool isValidParamId(clap_id paramId) const noexcept override
 //    {

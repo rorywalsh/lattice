@@ -29,6 +29,7 @@
 #include <lattice/clap/ClapPlugin.h>
 #include <nlohmann/json.hpp>
 #include <unordered_map>
+#include <list>
 
 // Define the operating system
 #if defined (_WIN32) || defined (_WIN64)
@@ -48,7 +49,7 @@ class Processor
     // Structure to represent a parameter
     struct Parameter
     {
-        const char* name;   // Parameter name
+        std::string name;   // Parameter name
         float min;          // Minimum value
         float max;          // Maximum value
         float value;        // Current value
@@ -56,12 +57,11 @@ class Processor
         float increment;    // Step size for parameter change
 
         // Constructor with default values
-        Parameter(const char* paramName = "", float paramMin = 0.f, float paramMax = 1.f,
+        Parameter(const std::string& paramName = "", float paramMin = 0.f, float paramMax = 1.f,
                   float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f)
             : name(paramName), min(paramMin), max(paramMax),
               value(paramValue), skew(paramSkew), increment(paramIncrement)
-        {
-        }
+        {}
     };
 
 public:
@@ -99,7 +99,9 @@ public:
     // Constructor: Initializes the plugin with a given number of inputs and outputs
     Processor(int numInputs, int numOutputs)
         : numInputs(numInputs), numOutputs(numOutputs)
-    {}
+    {
+        parameters.reserve(10);
+    }
 
     // Virtual destructor
     virtual ~Processor(){}
@@ -117,11 +119,13 @@ public:
     double getParameter(int paramId){   return getParameters()[paramId].value;  }
 
     // Function to get parameter value via the parameter's name
-    double getParameter(const std::string name)
+    double getParameter(const std::string& name)
     {
         auto it = parameterMap.find(name);
         if (it != parameterMap.end())
+        {
             return it->second->value;
+        }
 
         return 0.0;
     }
@@ -153,8 +157,14 @@ public:
     // Add a new parameter to the list
     void addParameter(lattice::Processor::Parameter parameter)
     {
+        std::cout << "Before adding parameter: size = " << parameters.size()
+                  << ", capacity = " << parameters.capacity() << std::endl;
+
         parameters.push_back(parameter);
         parameterMap[parameter.name] = &parameters.back(); // Fast lookup
+
+        std::cout << "After adding parameter: size = " << parameters.size()
+                  << ", capacity = " << parameters.capacity() << std::endl;
     }
     
     // Function pointer to send parameter updates to the host

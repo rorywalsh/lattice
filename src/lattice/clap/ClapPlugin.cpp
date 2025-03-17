@@ -78,7 +78,7 @@ bool ClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) const noexc
 
     info->id = paramId;
     info->flags = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_MODULATABLE;
-    strncpy(info->name, p.name, CLAP_NAME_SIZE);
+    strncpy(info->name, p.name.c_str(), CLAP_NAME_SIZE);
     strncpy(info->module, "", CLAP_NAME_SIZE);
     info->min_value = 0.f;
     info->max_value = 1.f;
@@ -140,6 +140,11 @@ bool ClapPlugin::paramsTextToValue(clap_id paramId, const char* display, double*
     return true;
 }
 
+uint32_t ClapPlugin::paramsCount() const noexcept
+{
+    return static_cast<uint32_t>(processor.getParameters().size());
+}
+
 bool ClapPlugin::activate(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) noexcept
 {
     processor.prepareToPlay(sampleRate, minFrameCount, maxFrameCount);
@@ -168,7 +173,7 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
          nextEvent->type == CLAP_EVENT_PARAM_VALUE)
      {
          auto p = reinterpret_cast<const clap_event_param_value*>(nextEvent);
-         if (p->param_id == 0)
+         if (p->param_id < processor.getParameters().size())
          {
              if (webview)
              {
