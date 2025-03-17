@@ -7,9 +7,9 @@ project(LatticePlugins LANGUAGES CXX VERSION 0.1)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-option(COPY_AFTER_BUILD "Install local copy after build" TRUE)
-option(CABBAGE_SERVICE_APP "Build the Cabbage service application instead of the plugin" OFF)
+set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
+set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "Download Dependencies")
+option(COPY_AFTER_BUILD "Install local copy after build" FALSE)
 
 # ----------------------------
 # Apple-Specific Settings
@@ -29,9 +29,8 @@ endif()
 # ----------------------------
 # Dependencies
 # ----------------------------
-set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "Download Dependencies")
-set(CLAP_WRAPPER_OUTPUT_NAME "${PROJECT_NAME}")
-set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
+
+
 
 include(cmake/Dependencies.cmake)
 

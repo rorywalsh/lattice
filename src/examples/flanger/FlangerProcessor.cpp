@@ -30,7 +30,7 @@ void FlangerProcessor::process(float** inputs, float** outputs, std::size_t bloc
     // Copy the input data to the input buffers
     std::copy(inputs[0], inputs[0] + blockSize, inputLeft.begin());
     std::copy(inputs[1], inputs[1] + blockSize, inputRight.begin());
-    
+
     // Apply the flanger effect to the input data
     auto &outL = flangerLeft(inputLeft, getParameter("LFO Frequency"), getParameter("Feedback"), getParameter("Gain"), getParameter("Max Delay") / 1000.f);
     auto &outR = flangerRight(inputRight, getParameter("LFO Frequency"), getParameter("Feedback"), getParameter("Gain"), getParameter("Max Delay") / 1000.f);

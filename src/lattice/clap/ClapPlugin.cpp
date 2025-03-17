@@ -2,24 +2,23 @@
 #include "gui/choc_WebView.h"
 #include "../LatticeProcessor.h"
 #include <nlohmann/json.hpp>
+#include PLUGIN_INFO_HEADER  // Include the dynamically generated header
 
-#define CABBAGE_MACOS 1
-
-#if CABBAGE_WINDOWS
+#if LATTICE_WINDOWS
 #include <windows.h>
-#elif CABBAGE_MACOS
+#elif LATTICE_MACOS
 extern "C"
 {
     bool attachViewToParent(void *childView, void *parentView); // Forward declaration
 }
-#elif CABBAGE_LINUX
+#elif LATTICE_LINUX
 #include <X11/Xlib.h>
 #endif
 
 
 ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
 : clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore, clap::helpers::CheckingLevel::Maximal>(
-    nullptr, host), processor(processor)
+    &descriptor, host), processor(processor)
 {
 
     auto rootPath = lattice::File::getResourceDir();
@@ -322,7 +321,7 @@ bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
 
     try
     {
-#if CABBAGE_WINDOWS
+#if LATTICE_WINDOWS
         if (strcmp(window->api, CLAP_WINDOW_API_WIN32) == 0)
         {
             auto *child = static_cast<HWND>(webview->getViewHandle());
@@ -333,7 +332,7 @@ bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
             ::ShowWindow(child, SW_SHOW);
             return true;
         }
-#elif CABBAGE_MACOS
+#elif LATTICE_MACOS
         if (strcmp(window->api, CLAP_WINDOW_API_COCOA) == 0)
         {
             void *parent = window->cocoa;
@@ -341,7 +340,7 @@ bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
             bool result = attachViewToParent(child, parent);
             return result;
         }
-#elif CABBAGE_LINUX
+#elif LATTICE_LINUX
         if (strcmp(window->api, CLAP_WINDOW_API_X11) == 0)
         {
             XReparentWindow(XOpenDisplay(nullptr), (Window)viewHandle, (Window)window->x11, 0, 0);

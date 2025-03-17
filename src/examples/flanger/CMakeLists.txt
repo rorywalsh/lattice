@@ -1,4 +1,5 @@
 set(PLUGIN_NAME FlangerPlugin)
+set(CLAP_WRAPPER_OUTPUT_NAME ${PLUGIN_NAME})
 
 set(SOURCE_FILES
     FlangerProcessor.cpp
@@ -30,6 +31,7 @@ generate_plugin_header(${PLUGIN_NAME}-impl
         CLAP_PLUGIN_FEATURE_STEREO
 )
 
+
 # Include Paths
 target_include_directories(${PLUGIN_NAME}-impl PRIVATE 
     ${LATTICE_INCLUDE_DIRS}
@@ -39,7 +41,9 @@ target_include_directories(${PLUGIN_NAME}-impl PRIVATE
 # Define a preprocessor macro for the header name
 target_compile_definitions(${PLUGIN_NAME}-impl PRIVATE 
     PLUGIN_INFO_HEADER="${PLUGIN_NAME}Info.h"
+    PRODUCT_NAME="${PLUGIN_NAME}"
 )
+
 
 
 # Compiler and Platform-Specific Options
@@ -55,33 +59,22 @@ if (APPLE)
     target_link_libraries(${PLUGIN_NAME}-impl PUBLIC clap clap-helpers ${COCOA_LIBRARY})
 endif()
 
+
 # Plugin Build Configuration
 make_clapfirst_plugins(
     TARGET_NAME ${PLUGIN_NAME}
     IMPL_TARGET ${PLUGIN_NAME}-impl
     OUTPUT_NAME "${PLUGIN_NAME}"
     ENTRY_SOURCE ${CMAKE_SOURCE_DIR}/src/lattice/clap/Factory.cpp
-    BUNDLE_IDENTIFER "org.yourproject.${PLUGIN_NAME}"
+    BUNDLE_IDENTIFER "com.cabbageaudio.${PLUGIN_NAME}"
     BUNDLE_VERSION ${PROJECT_VERSION}
     COPY_AFTER_BUILD ${COPY_AFTER_BUILD}
-    PLUGIN_FORMATS CLAP VST3 # AUV2
+    PLUGIN_FORMATS CLAP VST3
     ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets
+    STANDALONE_CONFIGURATIONS
+        standalone "${PLUGIN_NAME}" "your.reversed.domain.name.FlangerPlugin"
 )
 
-# Plugin-Specific Resource Copying
-set(PLUGIN_BUNDLE_DIR ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.vst3)
-set(RESOURCE_DIR ${PLUGIN_BUNDLE_DIR}/Contents/Resources)
-set(SOURCE_RESOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/html)  # Plugin-specific html folder
-
-# Define a custom target that performs the post-build actions
-add_custom_target(${PLUGIN_NAME}_post_build
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_BUNDLE_DIR}  # Create the .vst3 directory
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR}         # Create the Resources directory
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR}  # Copy the contents
-    COMMENT "Copying ${PLUGIN_NAME} resources to plugin bundle"
-)
-
-# Ensure the post-build actions are triggered after the plugin is built
-add_dependencies(${PLUGIN_NAME}-impl ${PLUGIN_NAME}_post_build)
-add_dependencies(${PLUGIN_NAME}_vst3 ${PLUGIN_NAME}_post_build)
-add_dependencies(${PLUGIN_NAME}_clap ${PLUGIN_NAME}_post_build)
+set(SOURCE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/html")
+# Call the function to set up resource copying
+COPY_PLUGIN_RESOURCES(${PLUGIN_NAME} ${SOURCE_RESOURCE_DIR})
