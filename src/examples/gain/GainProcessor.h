@@ -12,14 +12,14 @@
 //===========================================================
 
 
-class FlangerProcessor : public lattice::Processor {
+class GainProcessor : public lattice::Processor {
     
 public:
     // Constructor that initializes the CLAP plugin
-    FlangerProcessor(int numInputs, int numOutputs);
+    GainProcessor(int numInputs, int numOutputs);
     
     // Destructor to clean up resources
-    ~FlangerProcessor(){};
+    ~GainProcessor(){};
 
     // Process method to handle audio processing
     void process(float** inputs, float** outputs, std::size_t blockSize) override;
