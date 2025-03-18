@@ -11,7 +11,7 @@ pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 }
 //===================================================================================
 
-GainProcessor::FlangerProcessor(int numInputs, int numOutputs)
+GainProcessor::GainProcessor(int numInputs, int numOutputs)
     : Processor(numInputs, numOutputs)
 {
     addParameter({"Gain", 0, 1});

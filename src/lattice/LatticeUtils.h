@@ -21,14 +21,6 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#include <Shlobj.h>
-#include <wrl.h>
-#include <wil/com.h>
-#include "WebView2.h"
-#include <winrt/Windows.System.h>
-#include <DispatcherQueue.h>
-#include <winrt/base.h> // For winrt::com_ptr
-
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <sys/stat.h>
@@ -44,6 +36,150 @@
 
 namespace lattice {
 
+// Function to handle debug output in Visual Studio
+inline void logToDebug(const std::string& message)
+{
+#ifdef _WIN32
+    OutputDebugStringA(message.c_str());
+#endif
+}
+
+//==========================================================
+class Logger
+{
+public:
+    static Logger& getInstance();
+    void setLogFile(const std::string& filePath);
+    void closeLogFile();
+    void logMessage(const std::string& message);
+
+private:
+    Logger() = default;
+    ~Logger() { closeLogFile(); }
+
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+
+    std::ofstream logFile;
+    std::mutex fileMutex;
+};
+
+// Stream class to allow chaining with << operator
+class LogStream
+{
+public:
+    LogStream(const char* logLevel, bool includeContext) : logLevel(logLevel), includeContext(includeContext) {}
+
+    // Move constructor and move assignment operator
+    LogStream(LogStream&& other) noexcept
+        : logLevel(other.logLevel), includeContext(other.includeContext), message(std::move(other.message)),
+        file(other.file), line(other.line), function(other.function)
+    {
+    }
+
+    LogStream& operator=(LogStream&& other) noexcept
+    {
+        if (this != &other)
+        {
+            logLevel = other.logLevel;
+            includeContext = other.includeContext;
+            message = std::move(other.message);
+            file = other.file;
+            line = other.line;
+            function = other.function;
+        }
+        return *this;
+    }
+
+    // Destructor to log the message
+    ~LogStream()
+    {
+        try
+        {
+            std::ostringstream oss;
+            oss << "Lattice " << logLevel << ": " << message.str();
+
+            if (includeContext)
+            {
+                oss << " " << std::filesystem::path(file).filename().string()
+                    << " (" << line << ") " << function
+                    << " [Thread ID: " << std::this_thread::get_id() << "]";
+            }
+
+            Logger::getInstance().logMessage(oss.str());
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "LogStream destructor error: " << e.what() << std::endl;
+        }
+        catch (...)
+        {
+            std::cerr << "LogStream destructor encountered an unknown exception!" << std::endl;
+        }
+    }
+
+
+    template <typename T>
+    LogStream& operator<<(const T& value)
+    {
+        message << value;
+        return *this;
+    }
+
+    void setContext(const char* file, int line, const char* function)
+    {
+        this->file = file;
+        this->line = line;
+        this->function = function;
+    }
+
+private:
+    const char* logLevel;
+    bool includeContext;
+    std::ostringstream message;
+    const char* file = nullptr;
+    int line = 0;
+    const char* function = nullptr;
+
+    // Disable copy operations
+    LogStream(const LogStream&) = delete;
+    LogStream& operator=(const LogStream&) = delete;
+};
+
+// Stream-like logger functions for different log levels
+inline LogStream LogInfo()
+{
+    return LogStream("INFO", false); // Info doesn't include file/line info
+}
+
+inline LogStream LogVerbose(const char* file, int line, const char* function)
+{
+    LogStream log("DEBUG", true);
+    log.setContext(file, line, function);
+    return log;
+}
+
+inline LogStream LogWarning(const char* file, int line, const char* function)
+{
+    LogStream log("WARNING", true);
+    log.setContext(file, line, function);
+    return log;
+}
+
+inline LogStream LogError(const char* file, int line, const char* function)
+{
+    LogStream log("ERROR", true);
+    log.setContext(file, line, function);
+    return log;
+}
+
+// To use the logging functions like std::ostream:
+#define logInfo LogInfo()
+#define logDebug LogVerbose(__FILE__, __LINE__, __FUNCTION__)
+#define logWarning LogWarning(__FILE__, __LINE__, __FUNCTION__)
+#define logError LogError(__FILE__, __LINE__, __FUNCTION__)
+
+//==========================================================
 class File
 {
   public:
@@ -116,13 +252,14 @@ class File
     // Retrieves a specific property from the settings file by section and key
     static std::string getSettingsProperty(const std::string &section, const std::string &key);
 
+    static bool isWindowsStandalone()
+    {
+        return File::getBinaryFileAndPath().find_last_of(".exe") != std::string::npos ? true : false;
+    }
+
   private:
     // Retrieves the path to the directory that contains the resources
-    static std::string getResourceDirFromBundle()
-    {
-        const auto bundleParentDirPath = getParentDirectory(getParentDirectory(getBinaryFileAndPath()));
-        return joinPath(getParentDirectory(bundleParentDirPath), "/Contents/Resources");
-    }
+      static std::string getResourceDirFromBundle();
 
 
 #if defined(_WIN32)

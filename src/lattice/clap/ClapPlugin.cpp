@@ -209,7 +209,7 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
              default:
                  // Handle unexpected event types (optional)
                  std::cerr << "Unexpected CLAP note event type: " << nextEvent->type << std::endl;
-                 return; // Skip this event
+                 break;
          }
          
          processor.addNoteEvent({type,
@@ -251,6 +251,8 @@ void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcep
 
 bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
 {
+    auto w = processor.getEditorWidth();
+    auto h = processor.getEditorHeight();
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
 
     try {
@@ -331,9 +333,17 @@ bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
         {
             auto *child = static_cast<HWND>(webview->getViewHandle());
             auto *parent = static_cast<::HWND>(window->win32);
+
+            RECT parentRect;
+            ::GetClientRect(parent, &parentRect);
+            int parentWidth = parentRect.right - parentRect.left;
+            int parentHeight = parentRect.bottom - parentRect.top;
+            ::SetWindowPos(child, NULL, 0, 0, parentWidth, parentHeight, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+
             ::InvalidateRect(child, NULL, false);
             ::SetWindowLongPtrW(child, GWL_STYLE, WS_CHILD);
             ::SetParent(child, parent);
+            lattice::logDebug << "Adding child to parent";
             ::ShowWindow(child, SW_SHOW);
             return true;
         }

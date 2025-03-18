@@ -114,12 +114,24 @@ function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
     # Define the output directories for each plugin type
     set(PLUGIN_BUNDLE_DIR_VST3 ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.vst3)
     set(PLUGIN_BUNDLE_DIR_CLAP ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.clap)
-    set(PLUGIN_BUNDLE_DIR_APP ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.app)
+    if (WIN32)
+        set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Standalone-${PLUGIN_NAME}_standalone/Debug)
+    else()
+        set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME})   
+    endif()
 
     # Resource directories for each plugin type
     set(RESOURCE_DIR_VST3 ${PLUGIN_BUNDLE_DIR_VST3}/Contents/Resources)
     set(RESOURCE_DIR_CLAP ${PLUGIN_BUNDLE_DIR_CLAP}/Contents/Resources)
-    set(RESOURCE_DIR_APP ${PLUGIN_BUNDLE_DIR_APP}/Contents/Resources)
+
+    if(TARGET ${PLUGIN_NAME}_standalone)
+        if (WIN32)
+            set(RESOURCE_DIR_STANDALONE ${PLUGIN_BUNDLE_DIR_STANDALONE}/Resources)
+        else()
+            set(RESOURCE_DIR_STANDALONE ${PLUGIN_BUNDLE_DIR_STANDALONE}/Contents/Resources)
+        endif()
+    endif()
+
 
     # Create a custom target for post-build actions
     add_custom_target(${PLUGIN_NAME}_post_build
@@ -131,9 +143,9 @@ function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_CLAP}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR_CLAP}
 
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_BUNDLE_DIR_APP}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_APP}
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR_APP}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_BUNDLE_DIR_STANDALONE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_STANDALONE}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR_STANDALONE}
 
         COMMENT "Copying ${PLUGIN_NAME} resources to plugin bundles"
     )

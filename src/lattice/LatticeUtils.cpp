@@ -1,6 +1,61 @@
 #include "LatticeUtils.h"
 
 namespace lattice {
+
+//==================================================================================
+// Logging methods
+//==================================================================================
+
+Logger& Logger::getInstance()
+{
+    static Logger instance;
+    return instance;
+}
+
+void Logger::setLogFile(const std::string& filePath)
+{
+    std::lock_guard<std::mutex> lock(fileMutex);
+
+    if (logFile.is_open())
+    {
+        logFile.close();
+    }
+
+    logFile.open(filePath, std::ios::out | std::ios::app);
+
+    if (!logFile.is_open())
+    {
+        throw std::runtime_error("Failed to open log file: " + filePath);
+    }
+}
+
+void Logger::closeLogFile()
+{
+    std::lock_guard<std::mutex> lock(fileMutex);
+
+    if (logFile.is_open())
+    {
+        logFile.close();
+    }
+}
+
+void Logger::logMessage(const std::string& message)
+{
+    std::lock_guard<std::mutex> lock(fileMutex);
+
+    // Log to console
+    std::cout << message << std::endl;
+
+    // Log to file if open
+    if (logFile.is_open())
+    {
+        logFile << message << std::endl;
+    }
+
+    // Log to Visual Studio debug console
+    logToDebug(message + "\n");
+}
+
 //========================================================================
 // File utility class
 //========================================================================
@@ -65,6 +120,17 @@ std::string File::withExtension(const std::string &filePath, const std::string &
 std::string File::getResourceDir()
 {
     return getResourceDirFromBundle();
+}
+
+std::string File::getResourceDirFromBundle()
+{
+    if(File::isWindowsStandalone())
+        return File::joinPath(File::getParentDirectory(File::getBinaryFileAndPath()), "/Resources");
+
+    const auto bundleParentDirPath = File::getParentDirectory(File::getParentDirectory(File::getBinaryFileAndPath()));
+
+    return File::joinPath(File::getParentDirectory(bundleParentDirPath), "/Contents/Resources");
+
 }
 
 std::string File::loadJSFile(const std::string &filePath)

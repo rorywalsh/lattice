@@ -71,5 +71,6 @@ make_clapfirst_plugins(
         standalone "${PLUGIN_NAME}" "${PLUGIN_INFO_UNIQUE_ID}"
 )
 
+
 set(SOURCE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/html")
 COPY_PLUGIN_RESOURCES(${PLUGIN_NAME} ${SOURCE_RESOURCE_DIR})
