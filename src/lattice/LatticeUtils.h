@@ -254,8 +254,10 @@ class File
 
     static bool isWindowsStandalone()
     {
-        return File::getBinaryFileAndPath().find_last_of(".exe") != std::string::npos ? true : false;
+        std::string path = File::getBinaryFileAndPath();
+        return path.size() >= 4 && path.rfind(".exe") == (path.size() - 4);
     }
+
 
   private:
     // Retrieves the path to the directory that contains the resources
