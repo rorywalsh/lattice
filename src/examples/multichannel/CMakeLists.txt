@@ -1,5 +1,6 @@
 set(PLUGIN_NAME MultiChannelPlugin)
 set(CLAP_WRAPPER_OUTPUT_NAME ${PLUGIN_NAME})
+set(CLAP_WRAPPER_WINDOWS_SINGLE_FILE FALSE)
 
 set(SOURCE_FILES
     MultiChannelProcessor.cpp

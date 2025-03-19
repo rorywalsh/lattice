@@ -30,6 +30,8 @@
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 #include <list>
+#include "LatticeStructs.h"
+
 
 // Define the operating system
 #if defined (_WIN32) || defined (_WIN64)
@@ -46,62 +48,16 @@ namespace lattice
 
 class Processor
 {
-    // Structure to represent a parameter
-    struct Parameter
-    {
-        std::string name;   // Parameter name
-        float min;          // Minimum value
-        float max;          // Maximum value
-        float value;        // Current value
-        float skew;         // Skew factor for scaling
-        float increment;    // Step size for parameter change
-
-        // Constructor with default values
-        Parameter(const std::string& paramName = "", float paramMin = 0.f, float paramMax = 1.f,
-                  float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f)
-            : name(paramName), min(paramMin), max(paramMax),
-              value(paramValue), skew(paramSkew), increment(paramIncrement)
-        {}
-    };
 
 public:
     
-    struct NoteEvent {
-        // Enum for event types
-        enum class Type : uint16_t {
-            noteOn = 0,    // CLAP_EVENT_NOTE_ON
-            noteOff = 1,   // CLAP_EVENT_NOTE_OFF
-            noteChoke = 2, // CLAP_EVENT_NOTE_CHOKE
-            // Add other event types as needed
-        };
-
-        Type type;         // Event type (noteOn, noteOff, noteChoke, etc.)
-        int16_t key;       // MIDI note number
-        double velocity;   // Normalized velocity (0.0 to 1.0)
-        int32_t noteId;    // Unique note ID
-        uint32_t sampleOffset; // Sample offset
-
-        // Constructor
-        NoteEvent(Type t, int16_t k, double v, int32_t id, uint32_t offset)
-            : type(t), key(k), velocity(v), noteId(id), sampleOffset(offset) {}
-
-        // Log the event details
-        void log() const {
-            std::cout << "{ "
-                      << "type: " << static_cast<uint16_t>(type) << ", "
-                      << "key: " << key << ", "
-                      << "velocity: " << velocity << ", "
-                      << "noteId: " << noteId << ", "
-                      << "sampleOffset: " << sampleOffset << " }" << std::endl;
-        }
-    };
+    
     
     // Constructor: Initializes the plugin with a given number of inputs and outputs
-    Processor(int numInputs, int numOutputs)
-        : numInputs(numInputs), numOutputs(numOutputs)
-    {
-        //this needs fixing - resizing teh vector fucks with my mpa
-        parameters.reserve(10);
+	Processor()
+	{
+        //this needs fixing - resizing teh vector fucks with my unordered map 
+        parameters.reserve(64);
     }
 
     // Virtual destructor
@@ -146,8 +102,8 @@ public:
     int getEditorHeight(){   return editorHeight;   }
     
     // Get the number of audio outputs and inputs
-    int getNumOutputs(){    return numOutputs;      }
-    int getNumInputs(){     return numInputs;       }
+    lattice::ChannelConfig getChannelConfig() {      return channelConfig;     }
+
 
     // Get the list of parameters
     std::vector<Parameter>& getParameters()
@@ -156,7 +112,7 @@ public:
     }
 
     // Add a new parameter to the list
-    void addParameter(lattice::Processor::Parameter parameter)
+    void addParameter(lattice::Parameter parameter)
     {
         std::cout << "Before adding parameter: size = " << parameters.size()
                   << ", capacity = " << parameters.capacity() << std::endl;
@@ -176,7 +132,7 @@ public:
 
     // This function gets called from the plugin process block and
     // gets filled with note events - there is no need to manually fill it
-    void addNoteEvent(NoteEvent noteEvent)
+    void addNoteEvent(lattice::NoteEvent noteEvent)
     {
         noteEvents.push_back(noteEvent);
     }
@@ -187,15 +143,24 @@ public:
         return noteEvents;
     }
 
+	void addInputBus(const std::string &name, int channels, lattice::ChannelLayout grouping)
+	{
+		channelConfig.addInputBus(name, channels, grouping);
+	}
+
+    void addOutputBus(const std::string& name, int channels, lattice::ChannelLayout grouping)
+    {
+        channelConfig.addOutputBus(name, channels, grouping);
+    }
 
 private:
-    int numInputs = 0;   // Number of audio inputs
-    int numOutputs = 0;  // Number of audio outputs
     int editorWidth = 800;
     int editorHeight = 800;
     std::vector<Parameter> parameters; // Vector of parameters
     std::unordered_map<std::string, Parameter*> parameterMap; // Map for fast lookup by name
     std::deque<NoteEvent> noteEvents; // Fifo for noteEvents
+    lattice::ChannelConfig channelConfig;
 };
+
 
 } // namespace cabs

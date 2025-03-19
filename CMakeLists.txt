@@ -12,11 +12,16 @@ if (NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") # Statically link the MSVC Runtime
 endif()
 
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
 set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "Download Dependencies")
 option(COPY_AFTER_BUILD "Install local copy after build" FALSE)
+
+set(CLAP_WRAPPER_WINDOWS_SINGLE_FILE OFF)
+# Enabled vst3 bundle folder on Windows
+set(V3_WINDOWS_FOLDER_VST3  TRUE CACHE BOOL "")
 
 # ----------------------------
 # Apple-Specific Settings

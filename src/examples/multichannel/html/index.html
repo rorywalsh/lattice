@@ -64,7 +64,7 @@
         <!-- Max Delay Slider -->
         <div class="control-group">
             <div class="slider-label">Channel 1</div>
-            <rotary-slider id="gain1Slider" min="0" max="5" value="2.5"></rotary-slider>
+            <rotary-slider id="gain1Slider" min="0" max="1" value="0.5"></rotary-slider>
             <div class="value-display">
                 <span id="gain1Value">2.5</span>
             </div>
@@ -73,7 +73,7 @@
         <!-- LFO Frequency Slider -->
         <div class="control-group">
             <div class="slider-label">Channel 2</div>
-            <rotary-slider id="gain2Slider" min="0" max="20" value="0.5"></rotary-slider>
+            <rotary-slider id="gain2Slider" min="0" max="1" value="0.5"></rotary-slider>
             <div class="value-display">
                 <span id="gain2Value">0.5</span>
             </div>
@@ -136,7 +136,7 @@
         handleSliderChange('gain1Slider', 'gain1Value', 0); // Max Delay
         handleSliderChange('gain2Slider', 'gain2Value', 1); // LFO Frequency
         handleSliderChange('gain3Slider', 'gain3Value', 2); // Feedback
-        handleSliderChange('gain4Slider', 'gain3Value', 3); // Gain
+        handleSliderChange('gain4Slider', 'gain4Value', 3); // Gain
 
         // This callback will be triggered when the host sends a message
         function hostMessageCallback(msg) {

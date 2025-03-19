@@ -6,29 +6,36 @@
 pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 {
     //create a new instance of GainProcessor 
-    auto* processor = new MultiChannelProcessor(4, 4);
+    auto* processor = new MultiChannelProcessor();
     return new pluginType(host, *processor);
 }
 //===================================================================================
 
-MultiChannelProcessor::MultiChannelProcessor(int numInputs, int numOutputs)
-    : Processor(numInputs, numOutputs)
+MultiChannelProcessor::MultiChannelProcessor()
+    : Processor()
 {
-    addParameter({"Gain 1", 0, 1, .2, 0.01, 1});
-    addParameter({"Gain 2", 0, 1, .2, 0.01, 1});
-    addParameter({"Gain 3", 0, 1, .2, 0.01, 1});
-    addParameter({"Gain 4", 0, 1, .2, 0.01, 1});
+    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
+    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
+    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+
+    addParameter({"Gain 1", 0, .8, .2, 0.01, 1});
+    addParameter({"Gain 2", 0, .8, .2, 0.01, 1});
+    addParameter({"Gain 3", 0, .8, .2, 0.01, 1});
+    addParameter({"Gain 4", 0, .8, .2, 0.01, 1});
+
     setEditorSize(600, 300);
 }
 
 void MultiChannelProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
 {
-    const auto channels = getNumInputs();
     
     for (uint32_t i = 0; i < blockSize; i++)
     {
-        for (uint32_t ch = 0; ch < channels; ++ch)
-            outputs[ch][i] = inputs[ch][i]*getParameter("Gain");
+        outputs[0][i] = inputs[0][i] * getParameter("Gain 1");
+        outputs[1][i] = inputs[1][i] * getParameter("Gain 2");
+        outputs[2][i] = inputs[2][i] * getParameter("Gain 3");
+        outputs[3][i] = inputs[3][i] * getParameter("Gain 4");
     }
 }
 

@@ -16,7 +16,7 @@ class MultiChannelProcessor : public lattice::Processor {
     
 public:
     // Constructor that initializes the CLAP plugin
-    MultiChannelProcessor(int numInputs, int numOutputs);
+    MultiChannelProcessor();
     
     // Destructor to clean up resources
     ~MultiChannelProcessor(){};
