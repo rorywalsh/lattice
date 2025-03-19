@@ -117,7 +117,7 @@ function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
     if (WIN32)
         set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Standalone-${PLUGIN_NAME}_standalone/Debug)
     else()
-        set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME})   
+        set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.app)   
     endif()
 
     # Resource directories for each plugin type
