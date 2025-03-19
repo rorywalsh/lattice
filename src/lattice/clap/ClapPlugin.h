@@ -34,7 +34,7 @@ public:
     bool paramsInfo(uint32_t paramIndex, clap_param_info* info) const noexcept override;
     bool notePortsInfo(uint32_t index, bool isInput, clap_note_port_info *info) const noexcept override;
     
-    
+    uint32_t paramsCount() const noexcept override;
     uint32_t audioPortsCount(bool /*isInput*/) const noexcept override;
 
     uint32_t notePortsCount(bool isInput) const noexcept override 
@@ -42,10 +42,19 @@ public:
         return isInput ? 1 : 0;
     }
     
-    uint32_t paramsCount() const noexcept override;
-    bool implementsParams() const noexcept override{       return true;    }
-    bool implementsNotePorts() const noexcept override{    return true;    }
-    bool implementsAudioPorts() const noexcept override{   return true;    }
+    bool stateSave(const clap_ostream *ostream) noexcept override;
+    bool stateLoad(const clap_istream *stream) noexcept override;
+    
+    bool implementsState() const noexcept override{
+        return true;
+    }
+    
+    bool implementsParams() const noexcept override{
+        return true;
+    }
+    
+    bool implementsNotePorts() const noexcept override{     return true;    }
+    bool implementsAudioPorts() const noexcept override{    return true;    }
     
 //    bool isValidParamId(clap_id paramId) const noexcept override
 //    {

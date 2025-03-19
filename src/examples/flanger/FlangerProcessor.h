@@ -54,15 +54,17 @@ public:
     void setParameter(int paramId, double value) override;
     
     // Called whenever the webview sends a message
-    void onMesssgeFromWebView(nlohmann::json j) override;
+    void onMesssgeFromWebView(const nlohmann::json& j) override;
     
     // Called at least once before the processing starts
     void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) override;
     
+    nlohmann::json savePluginState() override;
+    void loadPluginState(nlohmann::json state) override;
+
+    
 private:
-    // Number of audio inputs and outputs
-    int numInputs = 0;
-    int numOutputs = 0;
     Flanger flangerLeft, flangerRight;
     std::vector<float> inputLeft, inputRight;
+    std::vector<nlohmann::json> webviewMessageQueue;
 };

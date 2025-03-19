@@ -27,6 +27,13 @@
 
 namespace lattice {
 
+void setTimeout(std::function<void()> callback, int delayMilliseconds) {
+    std::thread([callback, delayMilliseconds]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMilliseconds));
+        callback(); // Execute the callback after the delay
+    }).detach(); // Detach the thread to run independently
+}
+
 //==================================================================================
 // Logging methods
 //==================================================================================

@@ -120,7 +120,7 @@ void lattice::Server::start(std::string mp)
         std::cout << ("couldn't set mount point");
 
     mServer.set_logger(
-        [](const auto &req, const auto &res)
+        [](const auto &/*req*/, const auto &/*res*/)
         {
             //		std::cout << log(req, res) << std::endl;
         });

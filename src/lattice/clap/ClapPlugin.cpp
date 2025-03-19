@@ -38,6 +38,10 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
             webview->evaluateJavascript("hostMessageCallback(" +
                                         j.dump() + ");");
         }
+        else
+        {
+            lattice::logDebug << "Message are being sent to webview bevore it is open...";
+        }
     };
     
     
@@ -52,9 +56,9 @@ ClapPlugin::~ClapPlugin()
 uint32_t ClapPlugin::audioPortsCount(bool isInput) const noexcept
 {
     if (isInput)
-        return processor.getChannelConfig().getNumInputBuses();
+        return static_cast<uint32_t>(processor.getChannelConfig().getNumInputBuses());
     else
-        return processor.getChannelConfig().getNumOutputBuses();
+        return static_cast<uint32_t>(processor.getChannelConfig().getNumOutputBuses());
 
 }
 
@@ -62,7 +66,7 @@ bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_in
 {
     if (isInput)
     {
-        if (index >= processor.getChannelConfig().getNumInputBuses())
+        if (static_cast<size_t>(index) >= processor.getChannelConfig().getNumInputBuses())
             return false;
 
         info->channel_count = processor.getChannelConfig().getNumInputChannels(index);
@@ -70,7 +74,7 @@ bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_in
     }
     else
     {
-        if (index >= processor.getChannelConfig().getNumOutputBuses())
+        if (static_cast<size_t>(index) >= processor.getChannelConfig().getNumOutputBuses())
             return false;
 
         info->channel_count = processor.getChannelConfig().getNumOutputChannels(index);
@@ -79,22 +83,66 @@ bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_in
 
 
     info->id = index;
+    
     //use unique buffers for input/output
     info->in_place_pair = CLAP_INVALID_ID;
-
-
-
 
     if (index == 0)
         info->flags = CLAP_AUDIO_PORT_IS_MAIN;
     else
         info->flags = 0;
-    
-
-    
+        
     info->port_type = CLAP_PORT_STEREO;
 
     return true;
+}
+
+bool ClapPlugin::stateSave(const clap_ostream *ostream) noexcept
+{
+    auto json = processor.savePluginState();
+    auto res = ostream->write(ostream, json.dump().data(), json.dump().size());
+    return (res == - 1 ? false : true);
+}
+
+bool ClapPlugin::stateLoad(const clap_istream *istream) noexcept
+{
+    
+    std::vector<char> buffer;
+    const int64_t chunkSize = 2048; // Read in chunks
+
+    while (true) {
+        // Reserve space for the next chunk
+        size_t old_size = buffer.size();
+        buffer.resize(old_size + chunkSize);
+
+        // Read the next chunk
+        int64_t bytes_read = istream->read(istream, buffer.data() + old_size, chunkSize);
+        
+        if (bytes_read < 0)
+            return false; // Error reading from the stream
+
+        // Resize the buffer to the number of bytes read
+        buffer.resize(old_size + bytes_read);
+
+        if (bytes_read < chunkSize)
+            break;
+        
+    }
+
+    // Parse the JSON data
+    try 
+    {
+        std::string json_str(buffer.begin(), buffer.end());
+        nlohmann::json json = nlohmann::json::parse(json_str); // Parse JSON string
+        processor.loadPluginState(json); // Load the plugin state from the JSON object
+        return true;
+    } 
+    catch (const std::exception &e)
+    {
+        // Handle JSON parsing errors
+        std::cerr << "Failed to parse JSON: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 bool ClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) const noexcept
@@ -267,12 +315,21 @@ bool ClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) noexcep
 }
 
 
-// Utility function to send parameter changes to host
-void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept {
-    if (auto* host = _host.host()) {
-        if (auto* params = (const clap_host_params*) host->get_extension(host, CLAP_EXT_PARAMS)) {
-            params->request_flush(host);
-            processor.setParameter(paramId, value);
+void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept 
+{
+    checkMainThread();
+    
+    if (auto* host = _host.host())
+    {
+        if (auto* params = (const clap_host_params*) host->get_extension(host, CLAP_EXT_PARAMS)) 
+        {
+            double currentValue = processor.getParameter(paramId); // Assuming you have a getter
+            if (currentValue != value) 
+            { // Only update if the value has changed
+                processor.setParameter(paramId, value); // Update the processor's state
+                
+                params->request_flush(host); // Request a flush
+            }
         }
     }
 }
@@ -282,8 +339,7 @@ void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcep
 
 bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
 {
-    auto w = processor.getEditorWidth();
-    auto h = processor.getEditorHeight();
+
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
 
     try {
@@ -303,7 +359,6 @@ bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
         });
 
         webview->navigate(htmlMntPoint);
-        
         return true;
         
     } catch (const std::exception& e) {

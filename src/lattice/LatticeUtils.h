@@ -61,8 +61,10 @@
 
 namespace lattice {
 
+// setTimeout function
+void setTimeout(std::function<void()> callback, int delayMilliseconds);
 // Function to handle debug output in Visual Studio
-inline void logToDebug(const std::string& message)
+inline void logToDebug([[maybe_unused]] const std::string& message)
 {
 #ifdef _WIN32
     OutputDebugStringA(message.c_str());

@@ -26,6 +26,7 @@ FlangerProcessor::FlangerProcessor()
     setEditorSize(600, 300);
 }
 
+
 void FlangerProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
 {
     // Resize the input buffers to match the block size
@@ -46,17 +47,67 @@ void FlangerProcessor::process(float** inputs, float** outputs, std::size_t bloc
     
     // Copy the processed data to the output buffers
     std::copy(outL.begin(), outL.end(), outputs[0]);
-    std::copy(outL.begin(), outL.end(), outputs[1]);
+    std::copy(outR.begin(), outR.end(), outputs[1]);
 
 
 }
 
-void FlangerProcessor::onMesssgeFromWebView(nlohmann::json j)
+nlohmann::json FlangerProcessor::savePluginState()
+{	
+	const auto parameters = getParameters();
+    nlohmann::json j;
+    
+    // Running through these by index...
+    for(size_t i = 0 ; i < parameters.size() ; i++)
+    {
+        j[parameters[i].name] = parameters[i].value;
+    }
+    
+    return j;
+};
+
+void FlangerProcessor::loadPluginState(nlohmann::json state)
 {
-    std::cout << j.at(0).dump(4);
-    float value = j.at(0).value("value", 0.f);
-    auto paramIdx = j.at(0).value("paramIdx", -1);
-    sendParameterUpdateToHost(paramIdx, value);
+    auto json = nlohmann::json::parse(state.dump(4));
+    int idx = 0;
+    
+    for (auto& [key, value] : json.items()) {
+        
+        // Send value to host when project is loaded
+        sendParameterUpdateToHost(idx, value.get<float>());
+        
+        nlohmann::json j, data;
+        j["command"] = "parameterChange";
+        data["paramIdx"] = idx;
+        data["value"] = value.get<float>();
+        j["data"] = data;
+        
+        
+        // Saves state data to message queue.
+        // The data will be sent when the webview opens (see onEditorLoad()).
+        webviewMessageQueue.push_back(j);
+        idx++;
+    }
+};
+
+void FlangerProcessor::onMesssgeFromWebView(const nlohmann::json& j)
+{
+    auto json = j.at(0);
+
+    if(json.get<std::string>() == "onEditorLoad")
+    {
+        for(const auto &msg : webviewMessageQueue)
+        {
+            lattice::logDebug << msg.dump(4);
+            sendWebViewMessage(msg.dump());
+        }
+    }
+    else
+    {
+        float value = json.value("value", 0.f);
+        auto paramIdx = json.value("paramIdx", -1);
+        sendParameterUpdateToHost(paramIdx, value);
+    }
 }
 
 void FlangerProcessor::setParameter(int paramId, double value)

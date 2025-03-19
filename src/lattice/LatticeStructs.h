@@ -103,11 +103,11 @@ namespace lattice {
             outputBuses.emplace_back(name + std::to_string(outputBuses.size()), numChannels, layout);
         }
 
-		int getNumInputBuses() const {
+		size_t getNumInputBuses() const {
 			return inputBuses.size();
 		}
 
-		int getNumOutputBuses() const {
+		size_t getNumOutputBuses() const {
 			return outputBuses.size();
 		}
 
