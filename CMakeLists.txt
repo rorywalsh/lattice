@@ -5,11 +5,23 @@ cmake_minimum_required(VERSION 3.25)
 # ----------------------------
 project(LatticePlugins LANGUAGES CXX VERSION 0.1)
 
+if (NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+  if (WIN32)
+    message(STATUS "CMAKE_MSVC_RUNTIME_LIBRARY not defined. Setting to static link")
+  endif()
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") # Statically link the MSVC Runtime
+endif()
+
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
 set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "Download Dependencies")
 option(COPY_AFTER_BUILD "Install local copy after build" FALSE)
+
+set(CLAP_WRAPPER_WINDOWS_SINGLE_FILE OFF)
+# Enabled vst3 bundle folder on Windows
+set(V3_WINDOWS_FOLDER_VST3  TRUE CACHE BOOL "")
 
 # ----------------------------
 # Apple-Specific Settings

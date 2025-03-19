@@ -6,19 +6,23 @@
 pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 {
     //create a new instance of GainProcessor 
-    auto* processor = new FlangerProcessor(2, 2);
+    auto* processor = new FlangerProcessor();
     return new pluginType(host, *processor);
 }
 //===================================================================================
 
-FlangerProcessor::FlangerProcessor(int numInputs, int numOutputs)
-    : Processor(numInputs, numOutputs), flangerLeft(10, 44100), flangerRight(10, 44100)
+FlangerProcessor::FlangerProcessor()
+    : Processor(), flangerLeft(10, 44100), flangerRight(10, 44100)
 {
+
+    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
+    addInputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
 
     addParameter({ "Max Delay", 0, 5, 2.5f, 0.1f, 1.f});
     addParameter({ "LFO Frequency", 0, 20, .5, .0001f, 1.f});
     addParameter({ "Feedback", 0, 1, .7f, .0001f, 1.f});
     addParameter({ "Gain", 0, 1, .5, .01f, 1.f});
+
     setEditorSize(600, 300);
 }
 

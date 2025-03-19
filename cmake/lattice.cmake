@@ -90,6 +90,7 @@ endfunction()
 # Set teh lattice source files
 set(LATTICE_SOURCE_FILES
     "${CMAKE_SOURCE_DIR}/src/lattice/LatticeProcessor.h"
+    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeStructs.h"
     "${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.h"
     "${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.cpp"
     "${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.h"
@@ -112,12 +113,14 @@ set(LATTICE_INCLUDE_DIRS
 # ======================================================================
 function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
     # Define the output directories for each plugin type
-    set(PLUGIN_BUNDLE_DIR_VST3 ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.vst3)
-    set(PLUGIN_BUNDLE_DIR_CLAP ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.clap)
     if (WIN32)
         set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Standalone-${PLUGIN_NAME}_standalone/Debug)
+        set(PLUGIN_BUNDLE_DIR_VST3 ${CMAKE_BINARY_DIR}/$<CONFIG>/${PLUGIN_NAME}.vst3)
+        set(PLUGIN_BUNDLE_DIR_CLAP ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/${PLUGIN_NAME}.clap)
     else()
-        set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/Debug/${PLUGIN_NAME}.app)   
+        set(PLUGIN_BUNDLE_DIR_STANDALONE ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/${CMAKE_BUILD_TYPE}/${PLUGIN_NAME}.app)   
+        set(PLUGIN_BUNDLE_DIR_VST3 ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/${CMAKE_BUILD_TYPE}/${PLUGIN_NAME}.vst3)
+        set(PLUGIN_BUNDLE_DIR_CLAP ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/${CMAKE_BUILD_TYPE}/${PLUGIN_NAME}.clap)
     endif()
 
     # Resource directories for each plugin type

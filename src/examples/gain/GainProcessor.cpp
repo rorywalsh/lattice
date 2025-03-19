@@ -6,21 +6,25 @@
 pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 {
     //create a new instance of GainProcessor 
-    auto* processor = new GainProcessor(2, 2);
+    auto* processor = new GainProcessor();
     return new pluginType(host, *processor);
 }
 //===================================================================================
 
-GainProcessor::GainProcessor(int numInputs, int numOutputs)
-    : Processor(numInputs, numOutputs)
+GainProcessor::GainProcessor()
+    : Processor()
 {
-    addParameter({"Gain", 0, 1});
+	addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
+    addInputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+
+    addParameter({ "Gain", 0, 1 });
+
     setEditorSize(400, 300);
 }
 
 void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
 {
-    const auto channels = getNumInputs();
+	const auto channels = getChannelConfig().getTotalNumInputChannels();
     
     for (uint32_t i = 0; i < blockSize; i++)
     {

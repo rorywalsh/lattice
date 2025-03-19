@@ -42,7 +42,7 @@ class FlangerProcessor : public lattice::Processor {
 
 public:
     // Constructor that initializes the CLAP plugin
-    FlangerProcessor(int numInputs, int numOutputs);
+    FlangerProcessor();
     
     // Destructor to clean up resources
     ~FlangerProcessor(){};

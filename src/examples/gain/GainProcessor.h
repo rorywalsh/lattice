@@ -16,7 +16,7 @@ class GainProcessor : public lattice::Processor {
     
 public:
     // Constructor that initializes the CLAP plugin
-    GainProcessor(int numInputs, int numOutputs);
+    GainProcessor();
     
     // Destructor to clean up resources
     ~GainProcessor(){};

@@ -23,7 +23,7 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
 
     auto rootPath = lattice::File::getResourceDir();
    
-    if (!server.isThreadRunning())
+    if (!server.isThreadRunning())  
         server.start(rootPath);
     
     htmlMntPoint = "http://127.0.0.1:" + std::to_string(server.getCurrentPort()) + "/index.html";
@@ -49,26 +49,48 @@ ClapPlugin::~ClapPlugin()
     
 }
 
-uint32_t ClapPlugin::audioPortsCount(bool /*isInput*/) const noexcept
+uint32_t ClapPlugin::audioPortsCount(bool isInput) const noexcept
 {
-    return 2;
+    if (isInput)
+        return processor.getChannelConfig().getNumInputBuses();
+    else
+        return processor.getChannelConfig().getNumOutputBuses();
+
 }
 
 bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_info* info) const noexcept
 {
-    if (index != 0)
-        return false;
+    if (isInput)
+    {
+        if (index >= processor.getChannelConfig().getNumInputBuses())
+            return false;
 
-
-    info->id = 0;
-    info->in_place_pair = CLAP_INVALID_ID;
-    strncpy(info->name, "main", sizeof(info->name));
-    info->flags = CLAP_AUDIO_PORT_IS_MAIN;
-    
-    if(isInput)
-        info->channel_count = processor.getNumInputs();
+        info->channel_count = processor.getChannelConfig().getNumInputChannels(index);
+        snprintf(info->name, sizeof(info->name) - 1, "%s", processor.getChannelConfig().getInputBusName(index).c_str());
+    }
     else
-        info->channel_count = processor.getNumOutputs();
+    {
+        if (index >= processor.getChannelConfig().getNumOutputBuses())
+            return false;
+
+        info->channel_count = processor.getChannelConfig().getNumOutputChannels(index);
+        snprintf(info->name, sizeof(info->name) - 1, "%s", processor.getChannelConfig().getOutputBusName(index).c_str());
+    }
+
+
+    info->id = index;
+    //use unique buffers for input/output
+    info->in_place_pair = CLAP_INVALID_ID;
+
+
+
+
+    if (index == 0)
+        info->flags = CLAP_AUDIO_PORT_IS_MAIN;
+    else
+        info->flags = 0;
+    
+
     
     info->port_type = CLAP_PORT_STEREO;
 
@@ -202,18 +224,18 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
          const clap_event_note_t *noteEvent = (const clap_event_note_t *) nextEvent;
 
          // Map CLAP event types to NoteEvent::Type
-         lattice::Processor::NoteEvent::Type type;
+         lattice::NoteEvent::Type type;
          
          switch (nextEvent->type)
          {
              case CLAP_EVENT_NOTE_ON:
-                 type = lattice::Processor::NoteEvent::Type::noteOn;
+                 type = lattice::NoteEvent::Type::noteOn;
                  break;
              case CLAP_EVENT_NOTE_OFF:
-                 type = lattice::Processor::NoteEvent::Type::noteOff;
+                 type = lattice::NoteEvent::Type::noteOff;
                  break;
              case CLAP_EVENT_NOTE_CHOKE:
-                 type = lattice::Processor::NoteEvent::Type::noteChoke;
+                 type = lattice::NoteEvent::Type::noteChoke;
                  break;
              default:
                  // Handle unexpected event types (optional)
