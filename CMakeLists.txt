@@ -5,6 +5,13 @@ cmake_minimum_required(VERSION 3.25)
 # ----------------------------
 project(LatticePlugins LANGUAGES CXX VERSION 0.1)
 
+if (NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+  if (WIN32)
+    message(STATUS "CMAKE_MSVC_RUNTIME_LIBRARY not defined. Setting to static link")
+  endif()
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") # Statically link the MSVC Runtime
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
