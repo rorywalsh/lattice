@@ -35,10 +35,7 @@ public:
     bool notePortsInfo(uint32_t index, bool isInput, clap_note_port_info *info) const noexcept override;
     
     
-    uint32_t audioPortsCount(bool /*isInput*/) const noexcept override
-    {
-        return 1;
-    }
+    uint32_t audioPortsCount(bool /*isInput*/) const noexcept override;
 
     uint32_t notePortsCount(bool isInput) const noexcept override 
     {

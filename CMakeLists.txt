@@ -55,3 +55,4 @@ include_directories(
 # ----------------------------
 add_subdirectory(src/examples/gain)
 add_subdirectory(src/examples/flanger)
+add_subdirectory(src/examples/multichannel)

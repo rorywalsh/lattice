@@ -1,9 +1,9 @@
-set(PLUGIN_NAME GainPlugin)
+set(PLUGIN_NAME MultiChannelPlugin)
 set(CLAP_WRAPPER_OUTPUT_NAME ${PLUGIN_NAME})
 
 set(SOURCE_FILES
-    GainProcessor.cpp
-    GainProcessor.h
+    MultiChannelProcessor.cpp
+    MultiChannelProcessor.h
     ${LATTICE_SOURCE_FILES} # Include lattice source files
 )
 
@@ -27,8 +27,6 @@ generate_plugin_header(${PLUGIN_NAME}-impl
     DESCRIPTION "${PLUGIN_NAME} Plugin"
     FEATURES 
         CLAP_PLUGIN_FEATURE_AUDIO_EFFECT 
-        CLAP_PLUGIN_FEATURE_UTILITY 
-        CLAP_PLUGIN_FEATURE_STEREO
 )
 
 # Include Paths
@@ -41,7 +39,6 @@ target_compile_definitions(${PLUGIN_NAME}-impl PRIVATE
     PLUGIN_INFO_HEADER="${PLUGIN_NAME}Info.h"
     PRODUCT_NAME="${PLUGIN_NAME}"
 )
-
 
 # Compiler and Platform-Specific Options
 if (WIN32)
@@ -70,7 +67,6 @@ make_clapfirst_plugins(
     STANDALONE_CONFIGURATIONS
         standalone "${PLUGIN_NAME}" "your.reversed.domain.name.${PLUGIN_NAME}"
 )
-
 
 set(SOURCE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/html")
 COPY_PLUGIN_RESOURCES(${PLUGIN_NAME} ${SOURCE_RESOURCE_DIR})

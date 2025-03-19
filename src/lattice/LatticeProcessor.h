@@ -100,6 +100,7 @@ public:
     Processor(int numInputs, int numOutputs)
         : numInputs(numInputs), numOutputs(numOutputs)
     {
+        //this needs fixing - resizing teh vector fucks with my mpa
         parameters.reserve(10);
     }
 

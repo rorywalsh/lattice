@@ -74,7 +74,7 @@ make_clapfirst_plugins(
     PLUGIN_FORMATS CLAP VST3
     ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets
     STANDALONE_CONFIGURATIONS
-        standalone "${PLUGIN_NAME}" "your.reversed.domain.name.FlangerPlugin"
+        standalone "${PLUGIN_NAME}" "your.reversed.domain.name.${PLUGIN_NAME}"
 )
 
 set(SOURCE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/html")

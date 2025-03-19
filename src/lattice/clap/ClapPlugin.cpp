@@ -49,8 +49,12 @@ ClapPlugin::~ClapPlugin()
     
 }
 
+uint32_t ClapPlugin::audioPortsCount(bool /*isInput*/) const noexcept
+{
+    return 2;
+}
 
-bool ClapPlugin::audioPortsInfo(uint32_t index, bool /*isInput*/, clap_audio_port_info* info) const noexcept
+bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_info* info) const noexcept
 {
     if (index != 0)
         return false;
@@ -60,7 +64,12 @@ bool ClapPlugin::audioPortsInfo(uint32_t index, bool /*isInput*/, clap_audio_por
     info->in_place_pair = CLAP_INVALID_ID;
     strncpy(info->name, "main", sizeof(info->name));
     info->flags = CLAP_AUDIO_PORT_IS_MAIN;
-    info->channel_count = processor.getNumOutputs();
+    
+    if(isInput)
+        info->channel_count = processor.getNumInputs();
+    else
+        info->channel_count = processor.getNumOutputs();
+    
     info->port_type = CLAP_PORT_STEREO;
 
     return true;
