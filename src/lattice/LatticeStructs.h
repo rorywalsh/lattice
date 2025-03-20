@@ -27,6 +27,7 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include "LatticeUtils.h"
 
 namespace lattice {
 
@@ -55,11 +56,11 @@ namespace lattice {
         /// Prints event details for debugging
         void log() const 
         {
-            std::cout << "{ type: " << static_cast<uint16_t>(type)
+            lattice::logInfo << "{ type: " << static_cast<uint16_t>(type)
                 << ", key: " << key
                 << ", velocity: " << velocity
                 << ", noteId: " << noteId
-                << ", sampleOffset: " << sampleOffset << " }" << std::endl;
+                << ", sampleOffset: " << sampleOffset << " }";
         }
     };
 

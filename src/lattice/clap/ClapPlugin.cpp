@@ -235,13 +235,19 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
     if (process->audio_outputs_count <= 0)
         return CLAP_PROCESS_CONTINUE;
 
-    // Call the CabbageProcessor's process method
-    float** inputs = process->audio_inputs[0].data32;
     float** outputs = process->audio_outputs[0].data32;
     std::size_t blockSize = process->frames_count;
 
-
-    processor.process(inputs, outputs, blockSize);
+    // If there are inputs...
+    if (process->audio_inputs)
+    {
+        float** inputs = process->audio_inputs[0].data32;
+        processor.process(inputs, outputs, blockSize);
+    }
+    else
+    {
+        processor.process(nullptr, outputs, blockSize);
+    }
 
     // Handle parameter changes
     auto event = process->in_events;
@@ -327,7 +333,6 @@ void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcep
             if (currentValue != value) 
             { // Only update if the value has changed
                 processor.setParameter(paramId, value); // Update the processor's state
-                
                 params->request_flush(host); // Request a flush
             }
         }
@@ -429,7 +434,6 @@ bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
             ::InvalidateRect(child, NULL, false);
             ::SetWindowLongPtrW(child, GWL_STYLE, WS_CHILD);
             ::SetParent(child, parent);
-            lattice::logDebug << "Adding child to parent";
             ::ShowWindow(child, SW_SHOW);
             return true;
         }

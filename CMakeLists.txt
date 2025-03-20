@@ -58,6 +58,7 @@ include_directories(
 # ----------------------------
 # Add Plugin Directories
 # ----------------------------
-add_subdirectory(src/examples/gain)
-add_subdirectory(src/examples/flanger)
-add_subdirectory(src/examples/multichannel)
+add_subdirectory(examples/Gain)
+add_subdirectory(examples/Flanger)
+add_subdirectory(examples/MultiChannel)
+add_subdirectory(examples/SimpleSynth)
