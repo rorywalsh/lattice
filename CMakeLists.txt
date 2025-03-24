@@ -18,6 +18,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
 set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "Download Dependencies")
 option(COPY_AFTER_BUILD "Install local copy after build" FALSE)
+option(LATTICE_BUILD_EXAMPLES "Build all examples" TRUE)
 
 set(CLAP_WRAPPER_WINDOWS_SINGLE_FILE OFF)
 # Enabled vst3 bundle folder on Windows
@@ -58,7 +59,9 @@ include_directories(
 # ----------------------------
 # Add Plugin Directories
 # ----------------------------
+if(LATTICE_BUILD_EXAMPLES)
 add_subdirectory(examples/Gain)
 add_subdirectory(examples/Flanger)
 add_subdirectory(examples/MultiChannel)
 add_subdirectory(examples/SimpleSynth)
+endif()
