@@ -88,7 +88,6 @@ endfunction()
 
 # ==========================================================================
 # Set the lattice source files
-set(LATTICE_ROOT_DIR "${CMAKE_SOURCE_DIR}")
 set(LATTICE_SOURCE_FILES
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeProcessor.h"
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeStructs.h"
