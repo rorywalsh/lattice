@@ -13,7 +13,7 @@ pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 // Synth methods
 //===================================================================================
 SimpleSynthProcessor::Synth::Synth(int noteNumber, float rt, float sr)
-    : midiNoteNumber(noteNumber), rel(rt), att(0.1f), dec(0.3f), sus(0.7f), ,
+    : midiNoteNumber(noteNumber), rel(rt), att(0.1f), dec(0.3f), sus(0.7f),
     squareWave(Aurora::SQUARE, sr),
     triangleWave(Aurora::TRIANGLE, sr),
     sawWave(Aurora::SAW, sr),
@@ -58,11 +58,11 @@ void SimpleSynthProcessor::Synth::setBlockSize(std::size_t blockSize)
 // Main processor methods
 //===================================================================================
 SimpleSynthProcessor::SimpleSynthProcessor()
-    : Processor(), synth(0, 1.f, 44100)
+    : Processor()
 {
-    for ( int i = 0 ; i < 16 ; i++)
-		synthVoices.push_back(Synth(0, 1.f, 44100));
-        
+//    for ( int i = 0 ; i < 1 ; i++)
+//		synthVoices[i] = Synth(0, 1.f, 44100);
+//        
 
     addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
     addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
@@ -73,50 +73,6 @@ SimpleSynthProcessor::SimpleSynthProcessor()
     addParameter({ "Release", 0, 3, 0.1, 0.001, 1});
 
     setEditorSize(700, 300);
-}
-
-void SimpleSynthProcessor::manageVoices(lattice::NoteEvent noteEvent)
-{
-//    bool foundNote = false;
-//
-//    // First, check if the voice with the given key already exists
-//    for (auto& v : synthVoices)
-//    {
-//        if (v.getNoteNumber() == noteEvent.key)
-//        {
-//            foundNote = true;
-//
-//            if (noteEvent.type == lattice::NoteEvent::Type::noteOn)
-//            {
-//                v.setNoteType(true);
-//            }
-//            else if (noteEvent.type == lattice::NoteEvent::Type::noteOff)
-//            {
-//                v.setNoteType(false);
-//            }
-//
-//            // Exit the loop since we found the voice
-//            break;
-//        }
-//    }
-//
-//    // If the voice with the given key was not found, find an inactive voice
-//    if (!foundNote && noteEvent.type == lattice::NoteEvent::Type::noteOn)
-//    {
-//        for (auto& v : synthVoices)
-//        {
-//            if (!v.getNoteType()) // Check if the voice is inactive (noteType is false)
-//            {
-//                // Assign the key and velocity from the noteEvent
-//                v.setNoteNumber(noteEvent.key);
-////                v.setSustain(noteEvent.velocity);
-//                v.setNoteType(true); // Activate the voice
-//
-//                // Exit the loop after assigning the first available inactive voice
-//                break;
-//            }
-//        }
-//    }
 }
 
 
@@ -130,48 +86,22 @@ void SimpleSynthProcessor::process(float** /*inputs*/, float** outputs, std::siz
     while (!noteEvents.empty()) {
         auto event = noteEvents.front();
         event.log();
-        manageVoices(event); // Handle the note event
         noteEvents.pop_front();
     }
 
-    // Initialize a buffer to hold the summed output signal
-    std::vector<float> mixDown(blockSize, 0.0f); // Initialize with zeros
-
     // Iterate through all voices and sum their signals
-//    for (auto& voice : synthVoices)
-//    {
-//        if (voice.getNoteType()) // Check if the voice is active
-//        {
-//            // Generate the output signal for this voice
-//            const std::vector<float>& voiceOutput = voice(
-//                0.5,
-//                220,
-//                voice.getNoteType()
-//            );
-//
-//            // Sum the voice's output into the mix buffer
-//            for (std::size_t i = 0; i < blockSize; ++i)
-//            {
-//                mixDown[i] += voiceOutput[i];
-//            }
-//        }
-//    }
+    for (int i = 0 ; i < 16 ; i++)
+    {
+        auto voice = synthVoices[i];
+        
+    }
 
-    std::cout << "Synth Voices Size: " << synthVoices.size() << std::endl;
-    std::cout << "Synth 0 osc vector size: " << synthVoices[0].getOscVectorSize() << std::endl;
-    std::cout << "Synth 0 osc vector size: " << synthVoices[0].getEnvVectorSize() << std::endl;
-    
-    const std::vector<float>& voiceOutput = synthVoices[0](
-        0.5,
-        220,
-        true
-    );
     
     // Copy the summed output to the output buffers
     for (std::size_t i = 0; i < blockSize; ++i)
     {
-        outputs[0][i] = voiceOutput[i]; // Left channel
-        outputs[1][i] = voiceOutput[i]; // Right channel
+        outputs[0][i] = 0; // Left channel
+        outputs[1][i] = 0; // Right channel
     }
 }
 

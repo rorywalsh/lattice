@@ -13,13 +13,13 @@ class SimpleSynthProcessor : public lattice::Processor
     class Synth {
         
     public:
-        Synth(int noteNumber, float rt, float sr);
+        Synth(int noteNumber = 60, float rt = 0.1, float sr = 44100);
         void setWaveform(int waveForm);
         void setBlockSize(std::size_t blockSize);
         void setSampleRate(int sr);
         
         
-        const std::vector<float> operator()(float a, float f, bool gate) {
+        const std::vector<float>& operator()(float a, float f, bool gate) {
             return env(osc(a, f), gate);
         }
         
@@ -78,7 +78,7 @@ public:
 
 private:
     void manageVoices(lattice::NoteEvent noteEvent);
-    std::vector<SimpleSynthProcessor::Synth> synthVoices;
+    SimpleSynthProcessor::Synth synthVoices[16];
     SimpleSynthProcessor::Synth synth;
     bool isNoteOn = false;
     float vel = 1;

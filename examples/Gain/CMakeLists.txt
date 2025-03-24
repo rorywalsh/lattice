@@ -57,7 +57,7 @@ make_clapfirst_plugins(
     TARGET_NAME ${PLUGIN_NAME}
     IMPL_TARGET ${PLUGIN_NAME}-impl
     OUTPUT_NAME "${PLUGIN_NAME}"
-    ENTRY_SOURCE ${CMAKE_SOURCE_DIR}/src/lattice/clap/Factory.cpp
+    ENTRY_SOURCE ${LATTICE_ROOT_DIR}/src/lattice/clap/Factory.cpp
     BUNDLE_IDENTIFER "org.yourproject.${PLUGIN_NAME}"
     BUNDLE_VERSION ${PROJECT_VERSION}
     COPY_AFTER_BUILD ${COPY_AFTER_BUILD}
