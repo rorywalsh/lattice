@@ -1,5 +1,6 @@
 set(PLUGIN_NAME GainPlugin)
 set(CLAP_WRAPPER_OUTPUT_NAME ${PLUGIN_NAME})
+set(LATTICE_ROOT_DIR "${CMAKE_SOURCE_DIR}")
 
 set(SOURCE_FILES
     GainProcessor.cpp

@@ -1,16 +1,12 @@
 set(PLUGIN_NAME FlangerPlugin)
 set(CLAP_WRAPPER_OUTPUT_NAME ${PLUGIN_NAME})
+set(LATTICE_ROOT_DIR "${CMAKE_SOURCE_DIR}")
 
 set(SOURCE_FILES
     FlangerProcessor.cpp
     FlangerProcessor.h
     ${LATTICE_SOURCE_FILES} # Include lattice source files
 )
-
-# Apple-Specific Sources
-if (APPLE)    
-    list(APPEND SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/lattice/clap/platform/MacParent.mm)
-endif()
 
 add_library(${PLUGIN_NAME}-impl STATIC ${SOURCE_FILES})
 

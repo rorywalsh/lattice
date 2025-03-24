@@ -87,18 +87,24 @@ static constexpr clap_plugin_descriptor descriptor = {
 endfunction()
 
 # ==========================================================================
-# Set teh lattice source files
+# Set the lattice source files
+set(LATTICE_ROOT_DIR "${CMAKE_SOURCE_DIR}")
 set(LATTICE_SOURCE_FILES
-    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeProcessor.h"
-    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeStructs.h"
-    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.h"
-    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeServer.cpp"
-    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.h"
-    "${CMAKE_SOURCE_DIR}/src/lattice/LatticeUtils.cpp"
-    "${CMAKE_SOURCE_DIR}/src/lattice/clap/ClapPlugin.h"
-    "${CMAKE_SOURCE_DIR}/src/lattice/clap/ClapPlugin.cpp"
-    "${CMAKE_SOURCE_DIR}/src/lattice/clap/FactoryImpl.cpp"
+    "${LATTICE_ROOT_DIR}/src/lattice/LatticeProcessor.h"
+    "${LATTICE_ROOT_DIR}/src/lattice/LatticeStructs.h"
+    "${LATTICE_ROOT_DIR}/src/lattice/LatticeServer.h"
+    "${LATTICE_ROOT_DIR}/src/lattice/LatticeServer.cpp"
+    "${LATTICE_ROOT_DIR}/src/lattice/LatticeUtils.h"
+    "${LATTICE_ROOT_DIR}/src/lattice/LatticeUtils.cpp"
+    "${LATTICE_ROOT_DIR}/src/lattice/clap/ClapPlugin.h"
+    "${LATTICE_ROOT_DIR}/src/lattice/clap/ClapPlugin.cpp"
+    "${LATTICE_ROOT_DIR}/src/lattice/clap/FactoryImpl.cpp"
 )
+
+# Apple-Specific Sources
+if (APPLE)    
+    list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/clap/platform/MacParent.mm")
+endif()
 
 # ======================================================================
 # Set the Lattice include directories
