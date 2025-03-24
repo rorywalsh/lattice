@@ -9,11 +9,6 @@ set(SOURCE_FILES
     ${LATTICE_SOURCE_FILES} # Include lattice source files
 )
 
-# Apple-Specific Sources
-if (APPLE)    
-    list(APPEND SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/lattice/clap/platform/MacParent.mm)
-endif()
-
 add_library(${PLUGIN_NAME}-impl STATIC ${SOURCE_FILES})
 
 # Generate plugin header - this will define the project properties
