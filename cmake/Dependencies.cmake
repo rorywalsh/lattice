@@ -44,7 +44,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     aurora
     GIT_REPOSITORY https://github.com/vlazzarini/aurora.git
-    GIT_TAG master  
+    GIT_TAG main  
 )
 
 # Make all dependencies available except aurora

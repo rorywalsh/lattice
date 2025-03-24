@@ -10,45 +10,43 @@
 
 class SimpleSynthProcessor : public lattice::Processor 
 {
-    /* Basic synth class that contains Aurora::Env, Aurora::BlOsc,
-       and Aurora::TableSet objects */
     class Synth {
-
+        
     public:
         Synth(int noteNumber, float rt, float sr);
         void setWaveform(int waveForm);
         void setBlockSize(std::size_t blockSize);
         void setSampleRate(int sr);
-
-
-        const std::vector<float>& operator()(float a, float f, bool gate,
-            std::size_t vsiz = 0) 
-        {
-            if (vsiz)
-                osc.vsize(vsiz);
+        
+        
+        const std::vector<float> operator()(float a, float f, bool gate) {
             return env(osc(a, f), gate);
         }
-
-        void setAttack(float value) { att = value; }
-        void setDecay(float value) { dec = value; }
-        void setSustain(float value) { sus = value; }
-        void setRelease(float value) { env.release(value);   rel = value; }
-        float getAttack() { return att; }
-        float getDecay() { return dec; }
-        float getSustain() { return sus; }
-        float getRelease() { return rel; }
-		int getNoteNumber() { return midiNoteNumber; }
-		void setNoteNumber(int value) { midiNoteNumber = value; }
-		void setNoteType(bool value) { noteType = value; }
-		bool getNoteType() { return noteType; }
-
+        
+        void setAttack(float value)     {    att = value;           }
+        void setDecay(float value)      {    dec = value;           }
+        void setSustain(float value)    {    sus = value;           }
+        void setRelease(float value)    {    env.release(value);   rel = value; }
+        float getAttack()     {    return att;           }
+        float getDecay()      {    return dec;           }
+        float getSustain()    {    return sus;           }
+        float getRelease()    {    return rel;           }
+        
+        int getNoteNumber() { return midiNoteNumber; }
+        void setNoteNumber(int value) { midiNoteNumber = value; }
+        void setNoteType(bool value) { noteType = value; }
+        bool getNoteType() { return noteType; }
+        int getOscVectorSize(){ return osc.vsize(); }
+        int getEnvVectorSize(){ return env.vsize(); }
+        
     private:
         float att, dec, sus, rel;
         int midiNoteNumber = 0;
-		bool noteType = false;
-        std::vector<float> wave;
-        //Aurora::BlOsc<float> osc;
-        Aurora::Osc<float, Aurora::lookupi<float>> osc;
+        bool noteType = false;
+        Aurora::TableSet<float> sawWave;
+        Aurora::TableSet<float> squareWave;
+        Aurora::TableSet<float> triangleWave;
+        Aurora::BlOsc<float> osc;
         Aurora::Env<float> env;
     };
 
@@ -81,6 +79,7 @@ public:
 private:
     void manageVoices(lattice::NoteEvent noteEvent);
     std::vector<SimpleSynthProcessor::Synth> synthVoices;
+    SimpleSynthProcessor::Synth synth;
     bool isNoteOn = false;
     float vel = 1;
     double sr;
