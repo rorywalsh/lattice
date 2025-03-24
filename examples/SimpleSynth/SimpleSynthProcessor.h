@@ -4,6 +4,7 @@
 #include "lattice/LatticeProcessor.h"
 #include "BlOsc.h"
 #include "Env.h"
+#include "OnePole.h"
 
 //===========================================================
 
@@ -11,7 +12,13 @@
 class SimpleSynthProcessor : public lattice::Processor 
 {
     class Synth {
-        
+ 
+    float absSum(const std::vector<float>& data)
+    {
+        return std::accumulate(data.begin(), data.end(), 0.0f,
+            [](float sum, float val) { return sum + std::abs(val); });
+    }
+    
     public:
         Synth(int noteNumber = 60, float rt = 0.1, float sr = 44100);
         void setWaveform(int waveForm);
@@ -20,7 +27,12 @@ class SimpleSynthProcessor : public lattice::Processor
         
         
         const std::vector<float>& operator()(float a, float f, bool gate) {
-            return env(osc(a, f), gate);
+            auto& output = env(osc(a, f), gate);
+            
+            if(absSum(output) > 0)
+                int test = 0;
+            
+            return output;
         }
         
         void setAttack(float value)     {    att = value;           }
@@ -34,13 +46,13 @@ class SimpleSynthProcessor : public lattice::Processor
         
         int getNoteNumber() { return midiNoteNumber; }
         void setNoteNumber(int value) { midiNoteNumber = value; }
-        void setNoteType(bool value) { noteType = value; }
-        bool getNoteType() { return noteType; }
-        int getOscVectorSize(){ return osc.vsize(); }
-        int getEnvVectorSize(){ return env.vsize(); }
+        void setIsPlaying(bool value) { noteType = value; }
+        bool isPlaying() { return noteType; }
         
     private:
+        
         float att, dec, sus, rel;
+        float currentAmp = 0;
         int midiNoteNumber = 0;
         bool noteType = false;
         Aurora::TableSet<float> sawWave;
@@ -48,6 +60,7 @@ class SimpleSynthProcessor : public lattice::Processor
         Aurora::TableSet<float> triangleWave;
         Aurora::BlOsc<float> osc;
         Aurora::Env<float> env;
+        Aurora::OnePole<float> lp;
     };
 
     double getMidiNoteInHertz(const int noteNumber, const double aTuning = 440)
