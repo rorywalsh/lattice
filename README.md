@@ -1,3 +1,4 @@
+<---
 <div align="center">
 <img src="./lattice.svg" alt="Lattice Logo"></img>
 <br>
@@ -86,3 +87,5 @@ The project level `CMakeLists.txt` file has a `generate_plugin_header` that can 
 * [Nlohmann JSON](https://github.com/nlohmann/json.git) - Extensive C++ JSON framework  
 * [Choc](https://github.com/Tracktion/choc) - A mixed bag of handy C++ classes - provides the webview class for Lattice
 * [cpp-httplib](https://github.com/yhirose/cpp-httplib.git) - A HTTP/HTTPS library, used to server the webview sources
+
+--!>
