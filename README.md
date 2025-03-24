@@ -6,7 +6,7 @@
 
 
 
-Lattice is a simple plugin API that provides a thin wrapper around the CLAP plugin framework. It was developed as part of the Cabbage 3 Csound plugin framework. Unlike Cabbage, Lattice does not use Csound. In fact, it provides no DSP classes at all (although the example make use of the [Aurora](https://github.com/vlazzarini/aurora) library. Additionally, unlike most plugin frameworks, the UI is entirely provided in a webview. This means you do not have direct access to the traditional 'editor.' Communication between the webview and the plugin processor is handled through various function callbacks that transmit and receive JSON strings.
+Lattice is a simple plugin API that provides a thin wrapper around the CLAP plugin framework. It is part of the glue that holds Cabbage v3 together. Unlike Cabbage, Lattice does not use Csound. In fact, it provides no DSP classes at all (although the example make use of the [Aurora](https://github.com/vlazzarini/aurora) library. Additionally, unlike most plugin frameworks, the UI is entirely provided in a webview. This means you do not have direct access to the traditional 'editor.' Communication between the webview and the plugin processor is handled through various function callbacks that transmit and receive JSON strings.
 
 This wrapper does not provide nearly the same level of functionality as the full CLAP framework itself. However, I'm sharing it in the hope that some people might find it useful.
 
