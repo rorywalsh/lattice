@@ -98,6 +98,7 @@ set(LATTICE_SOURCE_FILES
     "${LATTICE_ROOT_DIR}/src/lattice/clap/ClapPlugin.h"
     "${LATTICE_ROOT_DIR}/src/lattice/clap/ClapPlugin.cpp"
     "${LATTICE_ROOT_DIR}/src/lattice/clap/FactoryImpl.cpp"
+    "${LATTICE_ROOT_DIR}/src/lattice/clap/Factory.cpp"
 )
 
 # Apple-Specific Sources
