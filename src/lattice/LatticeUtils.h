@@ -285,10 +285,13 @@ class File
         return path.size() >= 4 && path.rfind(".exe") == (path.size() - 4);
     }
 
+    // Retrieves the path to the directory that contains the resources
+    static std::string getResourceDirFromBundle();
+
+    static bool usesBundledResources() { return exists(getResourceDirFromBundle()); }
 
   private:
-    // Retrieves the path to the directory that contains the resources
-      static std::string getResourceDirFromBundle();
+
 
 
 #if defined(_WIN32)
