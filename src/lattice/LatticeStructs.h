@@ -31,9 +31,7 @@
 
 namespace lattice {
 
-    /**
-     * @brief Represents a musical note event (e.g., MIDI note on/off).
-     */
+    // Represents a musical note event (e.g., MIDI note on/off).
     struct NoteEvent 
     {
         enum class Type : uint16_t 
@@ -50,11 +48,11 @@ namespace lattice {
         int32_t noteId;        ///< Unique identifier for the note
         uint32_t sampleOffset; ///< Offset in the audio buffer (for timing accuracy)
 
-        /// Constructor
+        // Constructor
         NoteEvent(Type t, int16_t k, double v, int32_t id, uint32_t offset)
             : type(t), key(k), velocity(v), noteId(id), sampleOffset(offset) {}
 
-        /// Prints event details for debugging
+        // Prints event details for debugging
         void log() const 
         {
             lattice::logInfo << "{ type: " << static_cast<uint16_t>(type)
@@ -65,41 +63,38 @@ namespace lattice {
         }
     };
 
-    /// Enum representing different channel layouts for an audio bus
-    enum class ChannelLayout 
+    // Enum representing different channel layouts for an audio bus
+    enum class ChannelLayout : int
     {
         Mono,   ///< Single-channel (1 channel)
         Stereo  ///< Two-channel (Left/Right)
     };
 
-    /**
-     * @brief Represents an audio bus (group of channels).
-     */
+    // Represents an audio bus (group of channels).
     struct AudioBus 
     {
         std::string busName;       ///< Name of the bus
         int numChannels;        ///< Number of channels in the bus
         ChannelLayout layout;   ///< Layout of the channels
 
-        /// Constructor
+        // Constructor
         AudioBus(const std::string& name, int channels, ChannelLayout busLayout)
             : busName(name), numChannels(channels), layout(busLayout) {}
     };
 
-    /**
-     * @brief Manages input and output audio bus configurations.
-     */
+
+    // Manages input and output audio bus configurations.
     struct ChannelConfig {
         std::vector<AudioBus> inputBuses;  ///< List of input buses
         std::vector<AudioBus> outputBuses; ///< List of output buses
 
-        /// Adds an input bus
+        // Adds an input bus
         void addInputBus(const std::string &name, int numChannels, ChannelLayout layout) 
         {
             inputBuses.emplace_back(name + std::to_string(inputBuses.size()), numChannels, layout);
         }
 
-        /// Adds an output bus
+        // Adds an output bus
         void addOutputBus(const std::string &name, int numChannels, ChannelLayout layout) 
         {
             outputBuses.emplace_back(name + std::to_string(outputBuses.size()), numChannels, layout);
@@ -133,7 +128,7 @@ namespace lattice {
             return outputBuses[busIndex].busName;
         }
 
-        /// Returns the total number of input channels across all input buses
+        // Returns the total number of input channels across all input buses
         int getTotalNumInputChannels() const 
         {
             int total = 0;
@@ -144,7 +139,7 @@ namespace lattice {
             return total;
         }
 
-        /// Returns the total number of output channels across all output buses
+        // Returns the total number of output channels across all output buses
         int getTotalNumOutputChannels() const 
         {
             int total = 0;
@@ -157,9 +152,7 @@ namespace lattice {
     };
 
 
-    /**
-     * @brief Represents an adjustable parameter for an audio plugin.
-     */
+    // Represents an adjustable parameter for an audio plugin.
     struct Parameter {
         std::string name;   ///< Parameter name
         float min;          ///< Minimum value
@@ -168,7 +161,7 @@ namespace lattice {
         float skew;         ///< Skew factor for scaling
         float increment;    ///< Step size for parameter change
 
-        /// Constructor with default values
+        // Constructor with default values
         Parameter(const std::string& paramName = "", float paramMin = 0.f, float paramMax = 1.f,
             float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f)
             : name(paramName), min(paramMin), max(paramMax),
