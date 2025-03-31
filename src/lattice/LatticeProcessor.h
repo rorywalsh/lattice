@@ -89,6 +89,8 @@ public:
     void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
     int getEditorWidth() const { return editorWidth; }
     int getEditorHeight() const { return editorHeight; }
+    // Override to set a custom mount point - otherwise use bundled Resources folder
+    virtual std::string getCustomMountPoint() const { return ""; }
 
         
     // Channel Configuration
