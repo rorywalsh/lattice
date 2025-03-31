@@ -110,6 +110,7 @@ endif()
 # Set the Lattice include directories
 set(LATTICE_INCLUDE_DIRS
     ${clap_SOURCE_DIR}/include
+    ${clap-helpers_SOURCE_DIR}/include
     ${choc_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${json_SOURCE_DIR}/include
