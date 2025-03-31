@@ -89,8 +89,9 @@ public:
     void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
     int getEditorWidth() const { return editorWidth; }
     int getEditorHeight() const { return editorHeight; }
-    // Override to set a custom mount point - otherwise use bundled Resources folder
-    virtual std::string getCustomMountPoint() const { return ""; }
+    // Use this to set a custom mount point - otherwise use bundled Resources folder
+    void setMountPoint(const std::string& mntPoint){ customMountPoint = mntPoint; }
+    std::string getMountPoint(){    return customMountPoint;    }
 
         
     // Channel Configuration
@@ -124,6 +125,7 @@ private:
     std::unordered_map<std::string, Parameter*> parameterMap;
     std::deque<NoteEvent> noteEvents;
     lattice::ChannelConfig channelConfig;
+    std::string customMountPoint;
 };
 
 } // namespace lattice

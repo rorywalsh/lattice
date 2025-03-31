@@ -234,12 +234,6 @@ class File
     // Extracts properties from a given JavaScript content
     static nlohmann::json extractPropsFromJS(const std::string &jsContent);
 
-    // Gets the full path of the .csd file
-    static std::string getCsdPath(const std::string file = "");
-
-    // Gets the .csd file name without its extension
-    static std::string getCsdWithoutExtension();
-
     // Joins a directory path and a file name into a single path
     static std::string joinPath(const std::string &dirPath, const std::string &fileName);
 

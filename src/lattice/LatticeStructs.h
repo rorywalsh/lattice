@@ -41,7 +41,7 @@ namespace lattice {
             noteOn = 0,    ///< Note-on event (CLAP_EVENT_NOTE_ON)
             noteOff = 1,   ///< Note-off event (CLAP_EVENT_NOTE_OFF)
             noteChoke = 2,  ///< Note choke event (CLAP_EVENT_NOTE_CHOKE)
-            undefined = -99
+            undefined = 9999 ///< Undefined event type (for error handling)
         };
 
         Type type;             ///< Type of note event
