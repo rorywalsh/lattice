@@ -234,8 +234,36 @@ class File
     // Extracts properties from a given JavaScript content
     static nlohmann::json extractPropsFromJS(const std::string &jsContent);
 
-    // Joins a directory path and a file name into a single path
-    static std::string joinPath(const std::string &dirPath, const std::string &fileName);
+    // Joins a directory path and a variable number of args into a single path
+    template <typename... Args>
+    static std::string joinPath(const std::string &basePath, Args... parts)
+    {
+        std::vector<std::string> pathComponents = {basePath, parts...};
+
+        char separator =
+#if defined(_WIN32)
+            '\\';
+#else
+            '/';
+#endif
+
+        std::ostringstream oss;
+        for (size_t i = 0; i < pathComponents.size(); ++i)
+        {
+            const std::string &part = pathComponents[i];
+            if (part.empty()) continue;
+
+            // Avoid duplicate separators
+            if (!oss.str().empty() && oss.str().back() != separator && part.front() != separator)
+                oss << separator;
+            else if (oss.str().back() == separator && part.front() == separator)
+                oss << part.substr(1); // Remove leading separator
+            else
+                oss << part;
+        }
+
+        return oss.str();
+    }
 
     // Retrieves the path to the current binary
     static std::string getBinaryFileAndPath();

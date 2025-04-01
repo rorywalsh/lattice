@@ -281,25 +281,4 @@ std::vector<std::string> File::getFilesOfType(const std::string &dirPath, const 
     return result;
 }
 
-std::string File::joinPath(const std::string &dirPath, const std::string &fileName)
-{
-    if (dirPath.empty())
-        return fileName;
-    else if (fileName.empty())
-        return dirPath;
-    else
-    {
-        char separator =
-#if defined(_WIN32)
-            '\\';
-#else
-            '/';
-#endif
-        if (dirPath.back() == separator || fileName.front() == separator)
-            return dirPath + fileName;
-        else
-            return dirPath + separator + fileName;
-    }
-}
-
 }
