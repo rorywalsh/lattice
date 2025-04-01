@@ -248,24 +248,28 @@ class File
 #endif
 
         std::ostringstream oss;
-        for (size_t i = 0; i < pathComponents.size(); ++i)
+        
+        // Ensure the base path is handled correctly
+        bool isFirst = true;
+        for (std::string part : pathComponents)
         {
-            const std::string &part = pathComponents[i];
             if (part.empty()) continue;
 
-            // Add separator if needed
+            // Remove leading separators from subsequent parts
+            if (!isFirst && part.front() == separator)
+                part = part.substr(1);
+
+            // Append separator if needed
             if (!oss.str().empty() && oss.str().back() != separator)
                 oss << separator;
 
-            // Append current path component, stripping leading separators
-            if (part.front() == separator)
-                oss << part.substr(1);
-            else
-                oss << part;
+            oss << part;
+            isFirst = false;
         }
 
         return oss.str();
     }
+	
 
     // Retrieves the path to the current binary
     static std::string getBinaryFileAndPath();
