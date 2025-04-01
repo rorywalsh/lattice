@@ -249,9 +249,6 @@ class File
     // Checks if a directory exists at the given path
     static bool directoryExists(const std::string &dirPath);
 
-    // Retrieves the directory for resources
-    static std::string getResourceDir();
-
     // Loads the content of a JavaScript file as a string
     static std::string loadJSFile(const std::string &filePath);
 

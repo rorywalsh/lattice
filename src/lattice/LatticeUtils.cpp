@@ -149,11 +149,6 @@ std::string File::withExtension(const std::string &filePath, const std::string &
     return path.string();
 }
 
-std::string File::getResourceDir()
-{
-    return getResourceDirFromBundle();
-}
-
 std::string File::getResourceDirFromBundle()
 {
     if(File::isWindowsStandalone())
