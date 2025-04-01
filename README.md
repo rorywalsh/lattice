@@ -10,3 +10,15 @@ Lattice is a simple plugin API that provides a thin wrapper around the CLAP plug
 
 This wrapper does not provide anywhere near the same level of functionality as the full CLAP framework. However, I'm sharing it in the hope that some people might find it useful. There are no docs, but the included examples should provide with everything you need to get started. 
 
+##### Examples
+
+All the example have a html file include in their source tree. The content of this folder gets copied to the plugin bundle (if using VST3). If you want to run/build CLAP versions of the plugins, you will need to update the examples and see a custom mount point using the `LatticeProcessor::setMountPoint()` function. 
+
+* Gain: Ubiquitous gain example.
+
+* Simple Synth: A basic synth plugin example with sliders to control the ADSR envelope and waveform.
+
+* MultiChannel: A simple multichannel mixer demonstrating how to set up multichannel plugins.
+
+* Flanger: A basic audio effect plugin.
+
