@@ -21,7 +21,7 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
     &descriptor, host), processor(processor)
 {
 
-    auto rootPath = processor.getMountPoint().empty() ? lattice::File::getResourceDir() : processor.getMountPoint();
+    auto rootPath = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
    
     if (!server.isThreadRunning())  
         server.start(rootPath);
