@@ -253,11 +253,13 @@ class File
             const std::string &part = pathComponents[i];
             if (part.empty()) continue;
 
-            // Avoid duplicate separators
-            if (!oss.str().empty() && oss.str().back() != separator && part.front() != separator)
+            // Add separator if needed
+            if (!oss.str().empty() && oss.str().back() != separator)
                 oss << separator;
-            else if (oss.str().back() == separator && part.front() == separator)
-                oss << part.substr(1); // Remove leading separator
+
+            // Append current path component, stripping leading separators
+            if (part.front() == separator)
+                oss << part.substr(1);
             else
                 oss << part;
         }
