@@ -15,7 +15,7 @@ GainProcessor::GainProcessor()
     : Processor()
 {
 	addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
-    addInputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
 
     addParameter({ "Gain", 0, 1 });
 
@@ -24,12 +24,15 @@ GainProcessor::GainProcessor()
 
 void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
 {
+
 	const auto channels = getChannelConfig().getTotalNumInputChannels();
     
     for (uint32_t i = 0; i < blockSize; i++)
     {
         for (uint32_t ch = 0; ch < channels; ++ch)
+        {
             outputs[ch][i] = inputs[ch][i]*getParameter("Gain");
+        }
     }
 }
 

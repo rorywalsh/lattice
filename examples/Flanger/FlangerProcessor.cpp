@@ -54,62 +54,87 @@ void FlangerProcessor::process(float** inputs, float** outputs, std::size_t bloc
 }
 
 nlohmann::json FlangerProcessor::savePluginState()
-{	
-	const auto parameters = getParameters();
-    nlohmann::json j;
+{
+    const auto parameters = getParameters();
     
-    // Running through these by index...
-    for(size_t i = 0 ; i < parameters.size() ; i++)
+    // Use array instead of object so we can maintain order
+    nlohmann::json j = nlohmann::json::array();
+
+    // Store parameters by index in array
+    for (size_t i = 0; i < parameters.size(); i++)
     {
-        j[parameters[i].name] = parameters[i].value;
+        nlohmann::json param;
+        param["name"] = parameters[i].name;
+        param["value"] = parameters[i].value;
+        j.push_back(param);
+
+        lattice::logInfo << "Name:" << parameters[i].name << " Value:" << parameters[i].value;
     }
-    
+
     return j;
-};
+}
 
 void FlangerProcessor::loadPluginState(nlohmann::json state)
 {
     auto json = nlohmann::json::parse(state.dump(4));
+
     int idx = 0;
-    
-    for (auto& [key, value] : json.items()) {
-        
-        // Send value to host when project is loaded
-        sendParameterUpdateToHost(idx, value.get<float>());
-        
+
+    // Iterate through array
+    for (const auto& param : json)
+    {
+        // Read values
+        float value = param.value("value", 0.f);
+
+        // Send value to host
+        sendParameterUpdateToHost(idx, value);
+
+        // Prepare message for webview
         nlohmann::json j, data;
         j["command"] = "parameterChange";
         data["paramIdx"] = idx;
-        data["value"] = value.get<float>();
+        data["value"] = value;
         j["data"] = data;
-        
-        
-        // Saves state data to message queue.
-        // The data will be sent when the webview opens (see onEditorLoad()).
+
+        // Save to message queue
         webviewMessageQueue.push_back(j);
         idx++;
     }
-};
+}
+
 
 void FlangerProcessor::onMesssgeFromWebView(const nlohmann::json& j)
 {
-    auto json = j.at(0);
-
-    if(json.get<std::string>() == "onEditorLoad")
+    try
     {
-        for(const auto &msg : webviewMessageQueue)
+        auto json = j.at(0);
+        lattice::logInfo << json.dump(4);
+
+        // Check if json is a string
+        if (json.is_string() && json.get<std::string>() == "onEditorLoad")
         {
-            lattice::logDebug << msg.dump(4);
-            sendWebViewMessage(msg.dump());
+            for (const auto &msg : webviewMessageQueue)
+            {
+                sendWebViewMessage("hostMessageCallback(" + msg.dump() + ");");
+            }
+        }
+        else if (json.is_object())
+        {
+            float value = json.value("value", 0.f);
+            auto paramIdx = json.value("paramIdx", -1);
+            sendParameterUpdateToHost(paramIdx, value);
+        }
+        else
+        {
+            lattice::logError << "Unexpected message format: " << json.dump();
         }
     }
-    else
+    catch (const nlohmann::json::exception &e)
     {
-        float value = json.value("value", 0.f);
-        auto paramIdx = json.value("paramIdx", -1);
-        sendParameterUpdateToHost(paramIdx, value);
+        lattice::logError << "JSON Error: " << e.what();
     }
 }
+
 
 void FlangerProcessor::setParameter(int paramId, double value)
 {
