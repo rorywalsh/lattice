@@ -55,19 +55,18 @@ namespace lattice
 class Processor
 {
 public:
-    // Constructor: Initializes the plugin with a given number of inputs and outputs
+    // Constructor: Initialise plugins with max number of parameters
     Processor() { parameters.reserve(64); }
-    
     // Virtual destructor
     virtual ~Processor() = default;
 
     
-    // Audio Processing Methods
+    // ============= Audio Processing Methods =============
     virtual void process(float** inputs, float** outputs, std::size_t blockSize) = 0;
     virtual void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) = 0;
     
     
-    // Parameter Handling Methods
+    // ============= Parameter Handling Methods =============
     virtual void setParameter(int paramId, double value) = 0;
     virtual void onMesssgeFromWebView(const nlohmann::json &j) = 0;
     
@@ -85,16 +84,21 @@ public:
     }
     
     
-    // GUI Methods
+    // ============= GUI Methods =================
     void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
     int getEditorWidth() const { return editorWidth; }
     int getEditorHeight() const { return editorHeight; }
+    
     // Use this to set a custom mount point - otherwise use bundled Resources folder
     void setMountPoint(const std::string& mntPoint){ customMountPoint = mntPoint; }
-    std::string getMountPoint(){    return customMountPoint;    }
+    std::string getMountPoint() const {    return customMountPoint;    }
+    
+    // Use this to set the name of the function that will be called each time you send data to
+    // you webview - it defaults to "hostMessageCallback" which is used by all the included examples
+    void setWebViewSendFunctionName(const std::string& functionName){    webViewSendFunctionName = functionName;  }
+    std::string getWebViewSendFunctionName() const {    return webViewSendFunctionName;    }
 
-        
-    // Channel Configuration
+    // ============= Channel Configuration =================
     lattice::ChannelConfig getChannelConfig() const { return channelConfig; }
     void addInputBus(const std::string &name, int channels, lattice::ChannelLayout grouping) {
         channelConfig.addInputBus(name, channels, grouping);
@@ -104,19 +108,21 @@ public:
     }
     
     
-    // Note Event Handling
+    // ============= Note Event Handling =================
     void addNoteEvent(lattice::NoteEvent noteEvent) { noteEvents.push_back(noteEvent); }
     std::deque<NoteEvent>& getNoteEvents() { return noteEvents; }
     
     
-    // State Management
+    // ============= State Management ============= 
     virtual nlohmann::json savePluginState() { return {}; }
     virtual void loadPluginState(nlohmann::json /*state*/) {}
     
     
-    // Callback Functions
+    // ============= Callback Functions =============
     std::function<void(uint32_t, float)> sendParameterUpdateToHost = nullptr;
     std::function<void(nlohmann::json)> sendWebViewMessage = nullptr;
+    
+    
     
 private:
     int editorWidth = 800;
@@ -126,6 +132,7 @@ private:
     std::deque<NoteEvent> noteEvents;
     lattice::ChannelConfig channelConfig;
     std::string customMountPoint;
+    std::string webViewSendFunctionName = "hostMessageCallback";
 };
 
 } // namespace lattice

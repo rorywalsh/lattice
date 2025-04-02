@@ -32,10 +32,14 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
         sendParameterValueToHost(paramId, value);
     };
     
-    processor.sendWebViewMessage = [this](const std::string& script) {
+    auto functionName = processor.getWebViewSendFunctionName();
+    processor.sendWebViewMessage = [this, functionName](const std::string& script) {
         if (webview)
         {
-            webview->evaluateJavascript(script);
+            std::stringstream fullScript;
+            // Wrap call with function name
+            fullScript << functionName << "(" << script << ")";
+            webview->evaluateJavascript(fullScript.str());
         }
         else
         {
@@ -267,9 +271,16 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
                  h["value"] = p->value;
                  j["data"] = h;
                  
-                 webview->evaluateJavascript("hostMessageCallback(" +
-                                             j.dump() + ");");
+                 std::stringstream fullScript;
+                 // Wrap call with function name
+                 auto functionName = processor.getWebViewSendFunctionName();
+                 fullScript << functionName << "(" << j.dump() << ")";
                  
+                 webview->evaluateJavascript(fullScript.str());
+//                 
+//                 webview->evaluateJavascript("hostMessageCallback(" +
+//                                                             j.dump() + ");");
+                 sendParameterValueToHost(p->param_id, p->value);
              }
          }
      }
