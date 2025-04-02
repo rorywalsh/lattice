@@ -360,6 +360,7 @@ bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
     try {
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
+        options.acceptsFirstMouseClick = true;
         
         webview = std::make_unique<choc::ui::WebView>(options);
         
