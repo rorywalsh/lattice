@@ -32,11 +32,10 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
         sendParameterValueToHost(paramId, value);
     };
     
-    processor.sendWebViewMessage = [this](nlohmann::json j) {
+    processor.sendWebViewMessage = [this](const std::string& script) {
         if (webview)
         {
-            webview->evaluateJavascript("hostMessageCallback(" +
-                                        j.dump() + ");");
+            webview->evaluateJavascript(script);
         }
         else
         {
