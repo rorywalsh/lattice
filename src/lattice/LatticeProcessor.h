@@ -91,8 +91,12 @@ public:
     
     // Use this to set a custom mount point - otherwise use bundled Resources folder
     void setMountPoint(const std::string& mntPoint){ customMountPoint = mntPoint; }
-    std::string getMountPoint() const {    return customMountPoint;    }
+    std::string getMountPoint() const   {    return customMountPoint;   }
     
+    // Gets/sets server url - a unique address use to server web frontend
+    void setServerUrl(const std::string& url){    serverUrl = url;      }
+    std::string getServerUrl() const    {    return serverUrl;          }
+
     // Use this to set the name of the function that will be called each time you send data to
     // you webview - it defaults to "hostMessageCallback" which is used by all the included examples
     void setWebViewSendFunctionName(const std::string& functionName){    webViewSendFunctionName = functionName;  }
@@ -131,7 +135,8 @@ private:
     std::unordered_map<std::string, Parameter*> parameterMap;
     std::deque<NoteEvent> noteEvents;
     lattice::ChannelConfig channelConfig;
-    std::string customMountPoint;
+    std::string customMountPoint = "";
+    std::string serverUrl = "";
     std::string webViewSendFunctionName = "hostMessageCallback";
 };
 
