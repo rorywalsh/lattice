@@ -95,8 +95,8 @@ set(LATTICE_SOURCE_FILES
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeServer.cpp"
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeUtils.h"
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeUtils.cpp"
-    "${LATTICE_ROOT_DIR}/src/lattice/clap/ClapPlugin.h"
-    "${LATTICE_ROOT_DIR}/src/lattice/clap/ClapPlugin.cpp"
+    "${LATTICE_ROOT_DIR}/src/lattice/clap/LatticeClapPlugin.h"
+    "${LATTICE_ROOT_DIR}/src/lattice/clap/LatticeClapPlugin.cpp"
     "${LATTICE_ROOT_DIR}/src/lattice/clap/FactoryImpl.cpp"
     "${LATTICE_ROOT_DIR}/src/lattice/clap/Factory.cpp"
 )

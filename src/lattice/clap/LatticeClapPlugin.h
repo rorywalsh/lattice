@@ -11,23 +11,24 @@
 #include <deque>
 
 // Forward declare lattice::Processor 
-// and ClapPlugin
-class ClapPlugin;
+// and LatticeClapPlugin
+class LatticeClapPlugin;
+
 namespace lattice{
     class Processor;
 }
 
-using pluginType = ClapPlugin;
+using pluginType = LatticeClapPlugin;
 
-class ClapPlugin : public clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore,
+class LatticeClapPlugin : public clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore,
                                             clap::helpers::CheckingLevel::Maximal>
 {
     
 
     
 public:
-    ClapPlugin(const clap_host* host, lattice::Processor& processor);
-    ~ClapPlugin() override;
+    LatticeClapPlugin(const clap_host* host, lattice::Processor& processor);
+    ~LatticeClapPlugin() override;
 
     
     bool audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_info* info) const noexcept override;
@@ -98,5 +99,5 @@ private:
 
 class LatticeProcessorPluginFactory {
 public:
-    static ClapPlugin* createPlugin(const clap_host* host);
+    static LatticeClapPlugin* createPlugin(const clap_host* host);
 };
