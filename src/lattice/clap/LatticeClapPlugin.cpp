@@ -27,6 +27,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
         server.start(rootPath);
     
     htmlMntPoint = "http://127.0.0.1:" + std::to_string(server.getCurrentPort()) + "/index.html";
+    processor.setServerUrl(htmlMntPoint);
     
     processor.sendParameterUpdateToHost = [this](uint32_t paramId, float value) {
         sendParameterValueToHost(paramId, value);
