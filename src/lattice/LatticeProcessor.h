@@ -34,7 +34,7 @@
 #include <functional>
 
 // External Library Headers
-#include <lattice/clap/ClapPlugin.h>
+#include <lattice/clap/LatticeClapPlugin.h>
 #include <nlohmann/json.hpp>
 
 // Project Headers

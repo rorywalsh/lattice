@@ -4,7 +4,7 @@
 
 #include "FactoryImpl.h"
 #include "../LatticeProcessor.h"
-#include "ClapPlugin.h"
+#include "LatticeClapPlugin.h"
 #include <iostream>
 #include PLUGIN_INFO_HEADER  // Include the dynamically generated header
 

@@ -1,4 +1,4 @@
-#include "ClapPlugin.h"
+#include "LatticeClapPlugin.h"
 #include "gui/choc_WebView.h"
 #include "../LatticeProcessor.h"
 #include <nlohmann/json.hpp>
@@ -16,7 +16,7 @@ extern "C"
 #endif
 
 
-ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
+LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& processor)
 : clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore, clap::helpers::CheckingLevel::Maximal>(
     &descriptor, host), processor(processor)
 {
@@ -51,12 +51,12 @@ ClapPlugin::ClapPlugin(const clap_host* host, lattice::Processor& processor)
     
 }
 
-ClapPlugin::~ClapPlugin()
+LatticeClapPlugin::~LatticeClapPlugin()
 {
     
 }
 
-uint32_t ClapPlugin::audioPortsCount(bool isInput) const noexcept
+uint32_t LatticeClapPlugin::audioPortsCount(bool isInput) const noexcept
 {
     if (isInput)
         return static_cast<uint32_t>(processor.getChannelConfig().getNumInputBuses());
@@ -65,7 +65,7 @@ uint32_t ClapPlugin::audioPortsCount(bool isInput) const noexcept
 
 }
 
-bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_info* info) const noexcept
+bool LatticeClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_info* info) const noexcept
 {
     if (isInput)
     {
@@ -100,14 +100,14 @@ bool ClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_in
     return true;
 }
 
-bool ClapPlugin::stateSave(const clap_ostream *ostream) noexcept
+bool LatticeClapPlugin::stateSave(const clap_ostream *ostream) noexcept
 {
     auto json = processor.savePluginState();
     auto res = ostream->write(ostream, json.dump().data(), json.dump().size());
     return (res == - 1 ? false : true);
 }
 
-bool ClapPlugin::stateLoad(const clap_istream *istream) noexcept
+bool LatticeClapPlugin::stateLoad(const clap_istream *istream) noexcept
 {
     
     std::vector<char> buffer;
@@ -148,7 +148,7 @@ bool ClapPlugin::stateLoad(const clap_istream *istream) noexcept
     }
 }
 
-bool ClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) const noexcept
+bool LatticeClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) const noexcept
 {
     auto numParameters = processor.getParameters().size();
     
@@ -170,7 +170,7 @@ bool ClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) const noexc
     return true;
 }
 
-bool ClapPlugin::notePortsInfo(uint32_t index, bool isInput, clap_note_port_info *info) const noexcept
+bool LatticeClapPlugin::notePortsInfo(uint32_t index, bool isInput, clap_note_port_info *info) const noexcept
 {
     if (!isInput || index) 
         return false;
@@ -182,7 +182,7 @@ bool ClapPlugin::notePortsInfo(uint32_t index, bool isInput, clap_note_port_info
     return true;
 }
 
-bool ClapPlugin::paramsValue(clap_id paramId, double* value) noexcept
+bool LatticeClapPlugin::paramsValue(clap_id paramId, double* value) noexcept
 {
     auto numParameters = processor.getParameters().size();
     
@@ -193,7 +193,7 @@ bool ClapPlugin::paramsValue(clap_id paramId, double* value) noexcept
     return true;
 }
 
-bool ClapPlugin::paramsValueToText(clap_id paramId, double value, char* display, uint32_t size) noexcept
+bool LatticeClapPlugin::paramsValueToText(clap_id paramId, double value, char* display, uint32_t size) noexcept
 {
     auto numParameters = processor.getParameters().size();
     
@@ -208,7 +208,7 @@ bool ClapPlugin::paramsValueToText(clap_id paramId, double value, char* display,
     return true;
 }
 
-bool ClapPlugin::paramsTextToValue(clap_id paramId, const char* display, double* value) noexcept
+bool LatticeClapPlugin::paramsTextToValue(clap_id paramId, const char* display, double* value) noexcept
 {
     auto numParameters = processor.getParameters().size();
     
@@ -222,18 +222,18 @@ bool ClapPlugin::paramsTextToValue(clap_id paramId, const char* display, double*
     return true;
 }
 
-uint32_t ClapPlugin::paramsCount() const noexcept
+uint32_t LatticeClapPlugin::paramsCount() const noexcept
 {
     return static_cast<uint32_t>(processor.getParameters().size());
 }
 
-bool ClapPlugin::activate(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) noexcept
+bool LatticeClapPlugin::activate(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) noexcept
 {
     processor.prepareToPlay(sampleRate, minFrameCount, maxFrameCount);
     return true;
 }
 
-clap_process_status ClapPlugin::process(const clap_process* process) noexcept 
+clap_process_status LatticeClapPlugin::process(const clap_process* process) noexcept 
 {
     if (process->audio_outputs_count <= 0)
         return CLAP_PROCESS_CONTINUE;
@@ -322,7 +322,7 @@ clap_process_status ClapPlugin::process(const clap_process* process) noexcept
 
 }
 
-bool ClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) noexcept
+bool LatticeClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) noexcept
 {
     // We support embedded and floating windows
     return strcmp(api, CLAP_WINDOW_API_WIN32) == 0 ||
@@ -331,7 +331,7 @@ bool ClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) noexcep
 }
 
 
-void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept 
+void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept 
 {
     checkMainThread();
     
@@ -352,7 +352,7 @@ void ClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcep
 
 //========================================================================================
 
-bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
+bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
 {
 
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
@@ -387,41 +387,41 @@ bool ClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
     }
 }
 
-void ClapPlugin::guiDestroy() noexcept 
+void LatticeClapPlugin::guiDestroy() noexcept 
 {
     webview.reset();
 }
 
-bool ClapPlugin::guiSetScale(double) noexcept 
+bool LatticeClapPlugin::guiSetScale(double) noexcept 
 {
     return true;
 }
 
-bool ClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept 
+bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept 
 {
     currentWidth = width;
     currentHeight = height;
     return webview != nullptr;
 }
 
-bool ClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept 
+bool LatticeClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept 
 {
     *width = currentWidth;
     *height = currentHeight;
     return true;
 }
 
-bool ClapPlugin::guiShow() noexcept 
+bool LatticeClapPlugin::guiShow() noexcept 
 {
     return webview != nullptr;
 }
 
-bool ClapPlugin::guiHide() noexcept 
+bool LatticeClapPlugin::guiHide() noexcept 
 {
     return webview != nullptr;
 }
 
-bool ClapPlugin::guiSetParent(const clap_window *window) noexcept
+bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 {
     if (!webview)
     {
