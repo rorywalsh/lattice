@@ -28,7 +28,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
     
     htmlMntPoint = "http://127.0.0.1:" + std::to_string(server.getCurrentPort()) + "/index.html";
     processor.setServerUrl(htmlMntPoint);
-    
+
     processor.sendParameterUpdateToHost = [this](uint32_t paramId, float value) {
         sendParameterValueToHost(paramId, value);
     };
@@ -44,7 +44,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
         }
         else
         {
-            lattice::logDebug << "Message are being sent to webview bevore it is open...";
+            lattice::logDebug << "Messages are being sent to webview before it is open...";
         }
     };
     
