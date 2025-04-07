@@ -113,7 +113,7 @@ public:
     
     
     // ============= Note Event Handling =================
-    void addNoteEvent(lattice::NoteEvent noteEvent) { noteEvents.push_back(noteEvent); }
+    void addNoteEvent(const lattice::NoteEvent& noteEvent) { noteEvents.push_back(noteEvent); }
     std::deque<NoteEvent>& getNoteEvents() { return noteEvents; }
     
     
