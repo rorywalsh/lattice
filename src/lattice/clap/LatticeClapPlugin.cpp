@@ -13,12 +13,17 @@ extern "C"
 }
 #elif LATTICE_LINUX
 #include <X11/Xlib.h>
+#include "webview_binary.h"
 #endif
 
 
 LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& processor)
 : clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore, clap::helpers::CheckingLevel::Maximal>(
     &descriptor, host), processor(processor)
+#if LATTICE_LINUX
+    , instanceMap(lattice::SharedMemoryQueue::CreateDefaultInstanceTracker(true)),
+    memoryQueue("/lattice_" + instanceMap.getInstanceId(), 100, 1024)
+#endif
 {
 
     auto rootPath = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
@@ -35,6 +40,9 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
     
     auto functionName = processor.getWebViewSendFunctionName();
     processor.sendWebViewMessage = [this, functionName](const std::string& script) {
+#ifdef LATTICE_LINUX
+    webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());
+#else
         if (webview)
         {
             std::stringstream fullScript;
@@ -46,6 +54,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
         {
             lattice::logDebug << "Messages are being sent to webview before it is open...";
         }
+#endif
     };
     
     
@@ -264,25 +273,24 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
          auto p = reinterpret_cast<const clap_event_param_value*>(nextEvent);
          if (p->param_id < processor.getParameters().size())
          {
-             if (webview)
-             {
                  nlohmann::json j, h;
                  j["command"] = "parameterChange";
                  h["paramIdx"] = p->param_id;
                  h["value"] = p->value;
                  j["data"] = h;
-                 
+
                  std::stringstream fullScript;
                  // Wrap call with function name
                  auto functionName = processor.getWebViewSendFunctionName();
                  fullScript << functionName << "(" << j.dump() << ")";
-                 
+#ifdef LATTICE_LINUX
+
+#else
+             if (webview)
                  webview->evaluateJavascript(fullScript.str());
-//                 
-//                 webview->evaluateJavascript("hostMessageCallback(" +
-//                                                             j.dump() + ");");
+#endif
                  sendParameterValueToHost(p->param_id, p->value);
-             }
+
          }
      }
      else if (nextEvent->type == CLAP_EVENT_NOTE_ON || nextEvent->type == CLAP_EVENT_NOTE_OFF || nextEvent->type == CLAP_EVENT_NOTE_CHOKE) {
@@ -353,9 +361,57 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) 
 
 //========================================================================================
 
+std::string LatticeClapPlugin::createTempFile(const char *path_template)
+{
+    // Allocate memory for the temporary file name
+    char *temp_filename = new char[strlen(path_template) + 1]; // +1 for the null terminator
+    std::strcpy(temp_filename, path_template);
+
+    // Create a temporary file
+    int fd = mkstemp(temp_filename); // Creates and opens the file
+    if (fd == -1)
+    {
+        delete[] temp_filename; // Clean up the allocated memory
+        throw std::runtime_error("Failed to create temporary file");
+    }
+
+    // Write binary data to the file
+    std::string decoded_binary = lattice::Base64::decode(webview_binary);
+    auto data_size = decoded_binary.size(); // Use the size of the string, not strlen
+    if (write(fd, decoded_binary.data(), data_size) != static_cast<ssize_t>(data_size))
+    {
+        close(fd);
+        unlink(temp_filename);  // Clean up
+        delete[] temp_filename; // Clean up the allocated memory
+        throw std::runtime_error("Failed to write to temporary file");
+    }
+
+    // Mark the file as executable
+    if (chmod(temp_filename, S_IRWXU) == -1)
+    { // Read, write, execute by owner
+        close(fd);
+        unlink(temp_filename);  // Clean up
+        delete[] temp_filename; // Clean up the allocated memory
+        throw std::runtime_error("Failed to make file executable");
+    }
+
+    // Close the file
+    close(fd);
+
+    // Save the full path
+    std::string full_path(temp_filename);
+
+    // Clean up the allocated memory
+    delete[] temp_filename;
+
+    return full_path;
+}
+
 bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
 {
+#ifdef LATTICE_LINUX
 
+#else
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
 
     try {
@@ -386,11 +442,18 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         std::cerr << "Unknown exception in guiCreate" << std::endl;
         return false;
     }
+
+#endif
+
 }
 
 void LatticeClapPlugin::guiDestroy() noexcept 
 {
+#ifdef LATTICE_LINUX
+    unlink(std::string(webviewProcessPath).c_str());
+#else
     webview.reset();
+#endif
 }
 
 bool LatticeClapPlugin::guiSetScale(double) noexcept 
@@ -460,7 +523,54 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 #elif LATTICE_LINUX
         if (strcmp(window->api, CLAP_WINDOW_API_X11) == 0)
         {
-            XReparentWindow(XOpenDisplay(nullptr), (Window)viewHandle, (Window)window->x11, 0, 0);
+            // Convert parameters to strings
+            std::ostringstream x11WindowIdStr, xStr, yStr, widthStr, heightStr, scaleStr;
+            x11WindowIdStr << reinterpret_cast<unsigned long>(window);
+            xStr << 0;
+            yStr << 0;
+            widthStr << processor.getEditorWidth();
+            heightStr <<  processor.getEditorHeight();;
+            scaleStr << 1;
+            std::string isTransparentStr = "true";
+            std::string enableDevToolsStr = "true";
+
+            // Fork process
+            webviewPid = fork();
+
+            if (webviewPid == 0)
+            {
+
+                std::vector<std::string> stringArgs = {webviewProcessPath,
+                                                       x11WindowIdStr.str(),
+                                                       "/lattice_" + instanceMap.getInstanceId(),
+                                                       xStr.str(),
+                                                       yStr.str(),
+                                                       widthStr.str(),
+                                                       heightStr.str(),
+                                                       scaleStr.str(),
+                                                       isTransparentStr,
+                                                       enableDevToolsStr};
+
+                std::vector<const char *> args;
+                for (const auto &arg : stringArgs)
+                {
+                    args.push_back(arg.c_str());
+                }
+
+                usleep(10000);
+                args.push_back(nullptr); // Null terminator for exec
+                lattice::logInfo << "Webview process Name:" << args[0];
+                execv(args[0], const_cast<char *const *>(args.data()));
+                perror(args[0]); // Print error if exec fails
+                // now kill the process that started the webview...
+                exit(1);
+            }
+
+            if (webviewPid < 0)
+            {
+                lattice::logDebug << "Fork failed";
+                return false;
+            }
             return true;
         }
 #endif

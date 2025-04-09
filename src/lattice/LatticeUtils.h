@@ -21,7 +21,14 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 */
-
+// Define the operating system
+#if defined (_WIN32) || defined (_WIN64)
+#define LATTICE_WINDOWS 1
+#elif __APPLE__
+#define LATTICE_MACOS 1
+#elif defined (LINUX) || defined (__linux__)
+#define LATTICE_LINUX 1
+#endif
 
 #pragma once
 
@@ -41,6 +48,7 @@
 #include <thread>
 
 #include <nlohmann/json.hpp>
+#include <cppcodec/base64_rfc4648.hpp> // Include the correct header
 
 #include <mutex>
 
@@ -206,6 +214,28 @@ inline LogStream LogError(const char* file, int line, const char* function)
 #define logWarning LogWarning(__FILE__, __LINE__, __FUNCTION__)
 #define logError LogError(__FILE__, __LINE__, __FUNCTION__)
 
+
+//==========================================================
+class Base64
+{
+public:
+    // Function to decode a base64 string
+    static std::string decode(const std::string &encodedStr)
+    {
+        std::string decodedStr;
+        try
+        {
+            // Use the correct namespace and function
+            decodedStr = cppcodec::base64_rfc4648::decode<std::string>(encodedStr);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error decoding base64 string: " << e.what() << std::endl;
+            return "";
+        }
+        return decodedStr;
+    }
+};
 //==========================================================
 class File
 {

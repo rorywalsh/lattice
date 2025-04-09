@@ -40,14 +40,6 @@
 // Project Headers
 #include "LatticeStructs.h"
 
-// Define the operating system
-#if defined (_WIN32) || defined (_WIN64)
-#define LATTICE_WINDOWS 1
-#elif __APPLE__
-#define LATTICE_MACOS 1
-#elif defined (LINUX) || defined (__linux__)
-#define LATTICE_LINUX 1
-#endif
 
 namespace lattice
 {
