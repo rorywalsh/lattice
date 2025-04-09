@@ -5,7 +5,6 @@ src/lattice/clap/webview_binary.h
 **/cmake-build-debug/
 **/cmake-build-release/
 **/idea
-/idea
 packages/
 .DS_Store
 .vscode/

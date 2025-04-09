@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/aurora-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/choc-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/clap-helpers-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/clap-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/clap-wrapper-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/httplib-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/json-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/examples/Gain/cpm/rtaudio" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/examples/Gain/cpm/rtmidi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/examples/Gain/cpm/vst3sdk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/examples/Gain/cpm/vst3sdk/base" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/examples/Gain/cpm/vst3sdk/pluginterfaces" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/examples/Gain/cpm/vst3sdk/public.sdk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/examples/Gain/cpm/rtaudio" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/examples/Gain/cpm/rtmidi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/examples/Gain/cpm/vst3sdk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/examples/Gain/cpm/vst3sdk/base" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/examples/Gain/cpm/vst3sdk/pluginterfaces" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/examples/Gain/cpm/vst3sdk/public.sdk" vcs="Git" />
+  </component>
+</project>
