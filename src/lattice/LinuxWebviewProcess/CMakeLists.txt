@@ -45,9 +45,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/generated
 
     # Execute the bash script with arguments
-    COMMAND bash ${CMAKE_SOURCE_DIR}/src/lattice/LinuxWebviewProcess/scripts/generate_header.sh
+    COMMAND bash ${CMAKE_SOURCE_DIR}/scripts/generate_header.sh
         "$<TARGET_FILE:WebViewProcess>"
-        "${CMAKE_SOURCE_DIR}/src/lattice/clap/webview_binary.h"
+        "${CMAKE_SOURCE_DIR}/webview_binary.h"
         "${BINARY_ARRAY_NAME}"
 
     COMMENT "Generating Base64-encoded header file"

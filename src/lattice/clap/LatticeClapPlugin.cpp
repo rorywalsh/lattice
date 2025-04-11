@@ -13,7 +13,7 @@ extern "C"
 }
 #elif LATTICE_LINUX
 #include <X11/Xlib.h>
-#include "webview_binary.h"
+#include "../LinuxWebviewProcess/webview_binary.h"
 #endif
 
 
@@ -41,7 +41,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
     auto functionName = processor.getWebViewSendFunctionName();
     processor.sendWebViewMessage = [this, functionName](const std::string& script) {
 #ifdef LATTICE_LINUX
-    webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());
+
 #else
         if (webview)
         {
@@ -57,13 +57,14 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 #endif
     };
     
-    
-    
+#ifdef LATTICE_LINUX
+    webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());
+#endif
 }
 
 LatticeClapPlugin::~LatticeClapPlugin()
 {
-    
+    unlink(std::string(webviewProcessPath).c_str());
 }
 
 uint32_t LatticeClapPlugin::audioPortsCount(bool isInput) const noexcept
@@ -297,7 +298,7 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
          const clap_event_note_t *noteEvent = (const clap_event_note_t *) nextEvent;
 
          // Map CLAP event types to NoteEvent::Type
-         lattice::NoteEvent::Type type;
+         lattice::NoteEvent::Type type = {};
          
          switch (nextEvent->type)
          {
@@ -340,9 +341,9 @@ bool LatticeClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) 
 }
 
 
-void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) noexcept 
+void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) const noexcept
 {
-    checkMainThread();
+    //checkMainThread();
     
     if (auto* host = _host.host())
     {
@@ -410,7 +411,8 @@ std::string LatticeClapPlugin::createTempFile(const char *path_template)
 bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
 {
 #ifdef LATTICE_LINUX
-
+    guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
+    return true;
 #else
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
 
@@ -450,7 +452,12 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 void LatticeClapPlugin::guiDestroy() noexcept 
 {
 #ifdef LATTICE_LINUX
-    unlink(std::string(webviewProcessPath).c_str());
+
+    nlohmann::json message;
+    message["command"] = "Closed";
+    message["data"] = "";
+    memoryQueue.sendToChild(message);
+    usleep(50000);
 #else
     webview.reset();
 #endif
@@ -465,7 +472,11 @@ bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept
 {
     currentWidth = width;
     currentHeight = height;
+#ifdef LATTICE_LINUX
+    return true;
+#else
     return webview != nullptr;
+#endif
 }
 
 bool LatticeClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept 
@@ -477,24 +488,35 @@ bool LatticeClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept
 
 bool LatticeClapPlugin::guiShow() noexcept 
 {
+#ifdef LATTICE_LINUX
+    nlohmann::json message;
+    message["command"] = "LoadUrl";
+    message["data"] = htmlMntPoint;
+    memoryQueue.sendToChild(message);
+    usleep(50000);
+    return true;
+#else
     return webview != nullptr;
+#endif
 }
 
 bool LatticeClapPlugin::guiHide() noexcept 
 {
+#ifdef LATTICE_LINUX
+    return true;
+#else
     return webview != nullptr;
+#endif
 }
 
 bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 {
-    if (!webview)
-    {
-        return false;
-    }
-
     try
     {
 #if LATTICE_WINDOWS
+        if (!webview)
+            return false;
+
         if (strcmp(window->api, CLAP_WINDOW_API_WIN32) == 0)
         {
             auto *child = static_cast<HWND>(webview->getViewHandle());
@@ -513,6 +535,9 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
             return true;
         }
 #elif LATTICE_MACOS
+        if (!webview)
+            return false;
+
         if (strcmp(window->api, CLAP_WINDOW_API_COCOA) == 0)
         {
             void *parent = window->cocoa;
@@ -525,7 +550,7 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
         {
             // Convert parameters to strings
             std::ostringstream x11WindowIdStr, xStr, yStr, widthStr, heightStr, scaleStr;
-            x11WindowIdStr << reinterpret_cast<unsigned long>(window);
+            x11WindowIdStr << reinterpret_cast<unsigned long>(window->x11);
             xStr << 0;
             yStr << 0;
             widthStr << processor.getEditorWidth();
@@ -553,9 +578,8 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 
                 std::vector<const char *> args;
                 for (const auto &arg : stringArgs)
-                {
                     args.push_back(arg.c_str());
-                }
+
 
                 usleep(10000);
                 args.push_back(nullptr); // Null terminator for exec

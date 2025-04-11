@@ -103,6 +103,7 @@ private:
     pid_t webviewPid = 1;
     lattice::SharedMemoryQueue instanceMap;
     lattice::SharedMemoryQueue memoryQueue;
+
 #else
     std::unique_ptr<choc::ui::WebView> webview;
 #endif
@@ -114,7 +115,7 @@ private:
     uint32_t currentHeight = 600; // Default height
 
     // Utility functions for parameter handling
-    void sendParameterValueToHost(clap_id paramId, double value) noexcept;
+    void sendParameterValueToHost(clap_id paramId, double value) const noexcept;
     void beginParamAdjust(clap_id paramId) noexcept;
     void endParamAdjust(clap_id paramId) noexcept;
 };
