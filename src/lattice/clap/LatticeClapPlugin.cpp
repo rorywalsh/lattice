@@ -64,7 +64,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 
 LatticeClapPlugin::~LatticeClapPlugin()
 {
+#ifdef LATTICE_LINUX
+	// Terminate the webview process
     unlink(std::string(webviewProcessPath).c_str());
+#endif
 }
 
 uint32_t LatticeClapPlugin::audioPortsCount(bool isInput) const noexcept
@@ -361,12 +364,14 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) 
 
 
 //========================================================================================
-
-std::string LatticeClapPlugin::createTempFile(const char *path_template)
+// Temporary file creation for Linux
+//========================================================================================
+std::string LatticeClapPlugin::createTempFile(const char *path)
 {
+#ifdef LATTICE_LINUX
     // Allocate memory for the temporary file name
-    char *temp_filename = new char[strlen(path_template) + 1]; // +1 for the null terminator
-    std::strcpy(temp_filename, path_template);
+    char *temp_filename = new char[strlen(patt) + 1]; // +1 for the null terminator
+    std::strcpy(temp_filename, path);
 
     // Create a temporary file
     int fd = mkstemp(temp_filename); // Creates and opens the file
@@ -406,6 +411,9 @@ std::string LatticeClapPlugin::createTempFile(const char *path_template)
     delete[] temp_filename;
 
     return full_path;
+#endif
+    return "";
+
 }
 
 bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noexcept
