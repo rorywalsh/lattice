@@ -12,7 +12,7 @@ This wrapper does not provide wrappers to the full range of functions provided b
 
 ##### Examples
 
-All the example have a html file include in their source tree. The content of this folder gets copied to the plugin bundle (if using VST3). If you want to run/build CLAP versions of the plugins, you will need to update the examples and see a custom mount point using the `LatticeProcessor::setMountPoint()` function. 
+All the example have a html folder in their source tree. The contents of this folder gets copied to the plugin bundle (if using VST3). If you want to run/build CLAP versions of the plugins, you will need to update the examples and set a custom mount point using the `LatticeProcessor::setMountPoint()` function. 
 
 * Gain: Ubiquitous gain example.
 
