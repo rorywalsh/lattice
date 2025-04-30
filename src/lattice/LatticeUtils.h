@@ -136,9 +136,9 @@ public:
 
             if (includeContext)
             {
-                oss << " " << std::filesystem::path(file).filename().string()
+                oss << " [" << std::filesystem::path(file).filename().string()
                     << " (" << line << ") " << function
-                    << " [Thread ID: " << std::this_thread::get_id() << "]";
+                    << " Thread ID: " << std::this_thread::get_id() << "]" << std::endl;
             }
 
             Logger::getInstance().logMessage(oss.str());
