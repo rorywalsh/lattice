@@ -132,7 +132,7 @@ public:
         try
         {
             std::ostringstream oss;
-            oss << "Lattice " << logLevel << ": " << message.str();
+            oss << logLevel << ": " << message.str();
 
             if (includeContext)
             {
