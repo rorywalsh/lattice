@@ -190,7 +190,8 @@ namespace lattice {
     enum class ParamChangeType {
         GestureBegin,
         Value,
-        GestureEnd
+        GestureEnd,
+        Complete
     };
 
     struct ParameterChange {

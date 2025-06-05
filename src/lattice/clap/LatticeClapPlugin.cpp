@@ -340,55 +340,71 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
     lattice::ParameterChange change;
     while (parameterChanges.try_dequeue(change)) {
         switch (change.type) {
-            case lattice::ParamChangeType::GestureBegin: {
-                clap_event_param_gesture gestureBegin = {};
-                gestureBegin.header.size = sizeof(gestureBegin);
-                gestureBegin.header.time = 0;
-                gestureBegin.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
-                gestureBegin.header.type = CLAP_EVENT_PARAM_GESTURE_BEGIN;
-                gestureBegin.header.flags = 0;
-                gestureBegin.param_id = change.paramId;
-
-                process->out_events->try_push(process->out_events, (const clap_event_header_t*)&gestureBegin);
+            case lattice::ParamChangeType::GestureBegin:
+                emitGestureBegin(change.paramId, process->out_events);
                 break;
-            }
 
-            case lattice::ParamChangeType::Value: {
-                clap_event_param_value valueEvent = {};
-                valueEvent.header.size = sizeof(valueEvent);
-                valueEvent.header.time = 0;
-                valueEvent.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
-                valueEvent.header.type = CLAP_EVENT_PARAM_VALUE;
-                valueEvent.header.flags = 0;
-                valueEvent.param_id = change.paramId;
-                valueEvent.value = change.value;
-                valueEvent.note_id = -1;
-                valueEvent.channel = -1;
-                valueEvent.key = -1;
-                valueEvent.port_index = -1;
-
-                process->out_events->try_push(process->out_events, (const clap_event_header_t*)&valueEvent);
+            case lattice::ParamChangeType::Value:
+                emitValue(change.paramId, change.value, process->out_events);
                 break;
-            }
 
-            case lattice::ParamChangeType::GestureEnd: {
-                clap_event_param_gesture gestureEnd = {};
-                gestureEnd.header.size = sizeof(gestureEnd);
-                gestureEnd.header.time = 0;
-                gestureEnd.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
-                gestureEnd.header.type = CLAP_EVENT_PARAM_GESTURE_END;
-                gestureEnd.header.flags = 0;
-                gestureEnd.param_id = change.paramId;
-
-                process->out_events->try_push(process->out_events, (const clap_event_header_t*)&gestureEnd);
+            case lattice::ParamChangeType::GestureEnd:
+                emitGestureEnd(change.paramId, process->out_events);
                 break;
-            }
+
+            case lattice::ParamChangeType::Complete:
+                emitGestureBegin(change.paramId, process->out_events);
+                emitValue(change.paramId, change.value, process->out_events);
+                emitGestureEnd(change.paramId, process->out_events);
+                break;
         }
     }
-    
     return CLAP_PROCESS_CONTINUE;
 
 }
+
+
+void LatticeClapPlugin::emitGestureBegin(clap_id paramId, const clap_output_events_t* outEvents)
+{
+    clap_event_param_gesture ev = {};
+    ev.header.size = sizeof(ev);
+    ev.header.time = 0;
+    ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+    ev.header.type = CLAP_EVENT_PARAM_GESTURE_BEGIN;
+    ev.header.flags = 0;
+    ev.param_id = paramId;
+    outEvents->try_push(outEvents, (const clap_event_header_t*)&ev);
+}
+
+void LatticeClapPlugin::emitGestureEnd(clap_id paramId, const clap_output_events_t* outEvents) 
+{
+    clap_event_param_gesture ev = {};
+    ev.header.size = sizeof(ev);
+    ev.header.time = 0;
+    ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+    ev.header.type = CLAP_EVENT_PARAM_GESTURE_END;
+    ev.header.flags = 0;
+    ev.param_id = paramId;
+    outEvents->try_push(outEvents, (const clap_event_header_t*)&ev);
+}
+
+void LatticeClapPlugin::emitValue(clap_id paramId, double value, const clap_output_events_t* outEvents)
+{
+    clap_event_param_value ev = {};
+    ev.header.size = sizeof(ev);
+    ev.header.time = 0;
+    ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+    ev.header.type = CLAP_EVENT_PARAM_VALUE;
+    ev.header.flags = 0;
+    ev.param_id = paramId;
+    ev.value = value;
+    ev.note_id = -1;
+    ev.channel = -1;
+    ev.key = -1;
+    ev.port_index = -1;
+    outEvents->try_push(outEvents, (const clap_event_header_t*)&ev);
+}
+
 
 bool LatticeClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) noexcept
 {

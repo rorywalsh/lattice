@@ -69,16 +69,18 @@ public:
     bool implementsNotePorts() const noexcept override{     return true;    }
     bool implementsAudioPorts() const noexcept override{    return true;    }
     
-//    bool isValidParamId(clap_id paramId) const noexcept override
-//    {
-//        return paramId == gainPrmId_;
-//    }
 
     bool paramsValue(clap_id paramId, double* value) noexcept override;
     bool paramsValueToText(clap_id paramId, double value, char* display, uint32_t size) noexcept override;
     bool paramsTextToValue(clap_id paramId, const char* display, double* value) noexcept override;
     bool activate(double sampleRate, uint32_t, uint32_t) noexcept override;
 
+    // --- Helper functions ---
+    void emitGestureBegin(clap_id paramId, const clap_output_events_t* outEvents);
+    void emitGestureEnd(clap_id paramId, const clap_output_events_t* outEvents);
+    void emitValue(clap_id paramId, double value, const clap_output_events_t* outEvents);
+
+    
     clap_process_status process(const clap_process* process) noexcept override;
 
     // Add GUI implementation
