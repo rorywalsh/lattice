@@ -163,7 +163,7 @@ void FlangerProcessor::onMessageFromWebView(const nlohmann::json& j)
 // This is called from the host. 'value' will be normalised
 void FlangerProcessor::setParameter(int paramId, double value)
 {
-    getParameters()[paramId].value = value;
+    getParameters()[paramId].value = getParameter(paramId).fromNormalised(value);
     // We will send a normalised value to our web frontend
     sendWebViewMessage(getParameterJson(paramId, getParameter(paramId).fromNormalised(value)).dump());
     lattice::logDebug << "Value:" << getParameter(paramId).fromNormalised(value);

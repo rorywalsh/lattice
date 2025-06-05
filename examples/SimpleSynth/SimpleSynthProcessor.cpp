@@ -179,25 +179,26 @@ void SimpleSynthProcessor::setParameter(int paramId, double value)
 
     for (auto& voice : synthVoices)
     {
+        const float v = getParameter(paramId).fromNormalised(value);
         if(paramName == "Wave")
         {
-            voice.setWaveform(int(value));
+            voice.setWaveform(int(v));
         }
         else if(paramName == "Attack")
         {
-            voice.setAttack(value);
+            voice.setAttack(v);
         }
         else if(paramName == "Decay")
         {
-            voice.setDecay(value);
+            voice.setDecay(v);
         }
         else if(paramName == "Sustain")
         {
-            voice.setSustain(value);
+            voice.setSustain(v);
         }
         else if(paramName == "Release")
         {
-            voice.setRelease(value);
+            voice.setRelease(v);
         }
         else
         {

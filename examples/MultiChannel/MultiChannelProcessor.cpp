@@ -62,7 +62,7 @@ void MultiChannelProcessor::onMessageFromWebView(const nlohmann::json &j)
 // corresponding parameter value using updateParameter() function
 void MultiChannelProcessor::setParameter(int paramId, double value)
 {
-    getParameters()[paramId].value = value;
+    getParameters()[paramId].value = getParameter(paramId).fromNormalised(value);
 }
 
 void MultiChannelProcessor::prepareToPlay(double /*sampleRate*/, uint32_t /*minFrameCount*/, uint32_t /*maxFrameCount*/)
