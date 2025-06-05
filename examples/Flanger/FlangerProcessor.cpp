@@ -122,6 +122,7 @@ void FlangerProcessor::onMessageFromWebView(const nlohmann::json& j)
             {
                 sendWebViewMessage(msg.dump());
             }
+            webviewMessageQueue.clear();
             
             const auto parameters = getParameters();
             
