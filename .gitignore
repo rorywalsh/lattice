@@ -1,6 +1,11 @@
 _deps/
 build/
-src/webview/linux_process/build/
+src/lattice/LinuxWebviewProcess/build/
+src/lattice/clap/webview_binary.h
+src/lattice/LinuxWebviewProcess/webview_binary.h
+**/cmake-build-debug/
+**/cmake-build-release/
+**/idea
 packages/
 .DS_Store
 .vscode/

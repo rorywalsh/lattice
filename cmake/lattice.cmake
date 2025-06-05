@@ -47,7 +47,7 @@ function(generate_plugin_header TARGET)
     # Convert FEATURES list into a valid C++ array initializer format
     set(FEATURES_ARRAY "")
     foreach(FEATURE IN LISTS PLUGIN_INFO_FEATURES)
-        set(FEATURES_ARRAY "${FEATURES_ARRAY}\"${FEATURE}\", ")
+        set(FEATURES_ARRAY "${FEATURES_ARRAY} ${FEATURE}, ")
     endforeach()
     set(FEATURES_ARRAY "${FEATURES_ARRAY}nullptr")  # Ensure nullptr is last
 
@@ -61,7 +61,7 @@ function(generate_plugin_header TARGET)
 
 #include <clap/clap.h>  // Ensure this is the correct CLAP header location
 
-static constexpr const char* features[] = { ${FEATURES_ARRAY} };
+static const char* features[] = { ${FEATURES_ARRAY}, nullptr };
 
 static constexpr clap_plugin_descriptor descriptor = {
     .clap_version = CLAP_VERSION,
@@ -104,6 +104,9 @@ set(LATTICE_SOURCE_FILES
 # Apple-Specific Sources
 if (APPLE)    
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/clap/platform/MacParent.mm")
+elseif(LINUX)
+    list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/LatticeMemoryQueue.h")
+    add_subdirectory("${LATTICE_ROOT_DIR}/src/lattice/LinuxWebviewProcess")
 endif()
 
 # ======================================================================
@@ -115,7 +118,15 @@ set(LATTICE_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/src
     ${json_SOURCE_DIR}/include
     ${httplib_SOURCE_DIR}
+    ${cppcodec_SOURCE_DIR}
 )
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GTK REQUIRED gtk+-3.0 webkit2gtk-4.1)
+    list(APPEND LATTICE_INCLUDE_DIRS ${GTK_INCLUDE_DIRS})
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # ======================================================================
 function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)

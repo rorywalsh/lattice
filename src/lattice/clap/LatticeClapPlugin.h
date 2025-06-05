@@ -1,14 +1,25 @@
 #pragma once
 
-#include "platform/choc_DisableAllWarnings.h"
-#include <clap/helpers/host-proxy.hxx>
-#include <clap/helpers/plugin.hxx>
-#include <clap/ext/params.h>
-#include "platform/choc_ReenableAllWarnings.h"
-#include "gui/choc_WebView.h"
 #include "../LatticeServer.h"
 #include "../LatticeUtils.h"
 #include <deque>
+
+#include "platform/choc_DisableAllWarnings.h"
+#include <clap/helpers/host-proxy.hxx>
+#include <clap/helpers/plugin.hxx>
+
+
+#include "platform/choc_ReenableAllWarnings.h"
+#if !defined(LATTICE_LINUX)
+#include <clap/ext/params.h>
+#include "gui/choc_WebView.h"
+#else
+#include "text/choc_Files.h"
+#include "../LatticeMemoryQueue.h"
+#endif
+
+
+
 
 // Forward declare lattice::Processor 
 // and LatticeClapPlugin
@@ -82,19 +93,31 @@ public:
     bool guiSetParent(const clap_window* window) noexcept override;
 
 private:
+    lattice::Processor& processor; // reference to processor
     std::string htmlMntPoint = {};
     lattice::Server server;
     // Add GUI members
+#ifdef LATTICE_LINUX
+    void* webview = nullptr;
+    std::string webviewProcessPath = "";
+    pid_t webviewPid = 1;
+    lattice::SharedMemoryQueue instanceMap;
+    lattice::SharedMemoryQueue memoryQueue;
+
+#else
     std::unique_ptr<choc::ui::WebView> webview;
+#endif
+
+    // Create a file path to the Linux webview process
+    static std::string createTempFile(const char *path_template);
+
     uint32_t currentWidth = 800;  // Default width
     uint32_t currentHeight = 600; // Default height
 
     // Utility functions for parameter handling
-    void sendParameterValueToHost(clap_id paramId, double value) noexcept;
+    void sendParameterValueToHost(clap_id paramId, double value) const noexcept;
     void beginParamAdjust(clap_id paramId) noexcept;
     void endParamAdjust(clap_id paramId) noexcept;
-
-    lattice::Processor& processor; // reference to processor
 };
 
 class LatticeProcessorPluginFactory {

@@ -47,8 +47,14 @@ FetchContent_Declare(
     GIT_TAG main  
 )
 
+FetchContent_Declare(
+    cppcodec
+    GIT_REPOSITORY https://github.com/tplgy/cppcodec.git
+    GIT_TAG        master
+)
+
 # Make all dependencies available except aurora
-FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json httplib)
+FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json httplib cppcodec)
 
 # Enable OLD behavior for FetchContent_Populate to silence the warning
 cmake_policy(SET CMP0169 OLD)

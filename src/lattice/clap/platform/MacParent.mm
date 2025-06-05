@@ -1,3 +1,5 @@
+#ifndef LATTICE_IOS
+
 #import <Cocoa/Cocoa.h>
 
 extern "C" {
@@ -21,3 +23,4 @@ extern "C" {
         }
     }
 } 
+#endif
