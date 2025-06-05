@@ -34,10 +34,6 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
     htmlMntPoint = "http://127.0.0.1:" + std::to_string(server.getCurrentPort()) + "/index.html";
     processor.setServerUrl(htmlMntPoint);
 
-    processor.sendParameterUpdateToHost = [this](uint32_t paramId, float value) {
-        sendParameterValueToHost(paramId, value);
-    };
-    
     auto functionName = processor.getWebViewSendFunctionName();
     processor.sendWebViewMessage = [this, functionName](const std::string& script) {
 #ifdef LATTICE_LINUX
@@ -56,6 +52,13 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
         }
 #endif
     };
+
+    
+    processor.addParameterChange = [this](lattice::ParameterChange param) {
+        parameterChanges.enqueue(param);  
+    };
+    
+    
     
 #ifdef LATTICE_LINUX
     webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());
@@ -214,9 +217,12 @@ bool LatticeClapPlugin::paramsValueToText(clap_id paramId, double value, char* d
     if (paramId > numParameters)
         return false;
     
-    processor.setParameter(paramId, value);
+    const auto updatedValue = processor.getParameter(paramId).fromNormalised(value);
     
-    snprintf(display, size, "%.2f dB", value);
+//    processor.setParameter(paramId, updatedValue);
+    
+    
+    snprintf(display, size, "%.2f", updatedValue);
     std::cout << display << std::endl;
     
     return true;
@@ -280,7 +286,7 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
                  nlohmann::json j, h;
                  j["command"] = "parameterChange";
                  h["paramIdx"] = p->param_id;
-                 h["value"] = p->value;
+                 h["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
                  j["data"] = h;
 
                  std::stringstream fullScript;
@@ -290,8 +296,8 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
 #ifdef LATTICE_LINUX
 
 #else
-             if (webview)
-                 webview->evaluateJavascript(fullScript.str());
+                if (webview)
+                    webview->evaluateJavascript(fullScript.str());
 #endif
                  sendParameterValueToHost(p->param_id, p->value);
 
@@ -331,6 +337,55 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
      }
     }
 
+    lattice::ParameterChange change;
+    while (parameterChanges.try_dequeue(change)) {
+        switch (change.type) {
+            case lattice::ParamChangeType::GestureBegin: {
+                clap_event_param_gesture gestureBegin = {};
+                gestureBegin.header.size = sizeof(gestureBegin);
+                gestureBegin.header.time = 0;
+                gestureBegin.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+                gestureBegin.header.type = CLAP_EVENT_PARAM_GESTURE_BEGIN;
+                gestureBegin.header.flags = 0;
+                gestureBegin.param_id = change.paramId;
+
+                process->out_events->try_push(process->out_events, (const clap_event_header_t*)&gestureBegin);
+                break;
+            }
+
+            case lattice::ParamChangeType::Value: {
+                clap_event_param_value valueEvent = {};
+                valueEvent.header.size = sizeof(valueEvent);
+                valueEvent.header.time = 0;
+                valueEvent.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+                valueEvent.header.type = CLAP_EVENT_PARAM_VALUE;
+                valueEvent.header.flags = 0;
+                valueEvent.param_id = change.paramId;
+                valueEvent.value = change.value;
+                valueEvent.note_id = -1;
+                valueEvent.channel = -1;
+                valueEvent.key = -1;
+                valueEvent.port_index = -1;
+
+                process->out_events->try_push(process->out_events, (const clap_event_header_t*)&valueEvent);
+                break;
+            }
+
+            case lattice::ParamChangeType::GestureEnd: {
+                clap_event_param_gesture gestureEnd = {};
+                gestureEnd.header.size = sizeof(gestureEnd);
+                gestureEnd.header.time = 0;
+                gestureEnd.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+                gestureEnd.header.type = CLAP_EVENT_PARAM_GESTURE_END;
+                gestureEnd.header.flags = 0;
+                gestureEnd.param_id = change.paramId;
+
+                process->out_events->try_push(process->out_events, (const clap_event_header_t*)&gestureEnd);
+                break;
+            }
+        }
+    }
+    
     return CLAP_PROCESS_CONTINUE;
 
 }
@@ -352,7 +407,7 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) 
     {
         if (auto* params = (const clap_host_params*) host->get_extension(host, CLAP_EXT_PARAMS)) 
         {
-            double currentValue = processor.getParameter(paramId); // Assuming you have a getter
+            double currentValue = processor.getParameterValue(paramId); // Assuming you have a getter
             if (currentValue != value) 
             { // Only update if the value has changed
                 processor.setParameter(paramId, value); // Update the processor's state
@@ -366,7 +421,7 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) 
 //========================================================================================
 // Temporary file creation for Linux
 //========================================================================================
-std::string LatticeClapPlugin::createTempFile(const char *path)
+std::string LatticeClapPlugin::createTempFile(const char* /*path*/)
 {
 #ifdef LATTICE_LINUX
     // Allocate memory for the temporary file name
@@ -437,7 +492,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         // Add JavaScript interface for parameter control
         webview->bind("sendMessageFromUI", [this](const choc::value::ValueView& args) -> choc::value::Value {
             nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
-            processor.onMesssgeFromWebView(j);
+            processor.onMessageFromWebView(j);
             return {};
         });
 

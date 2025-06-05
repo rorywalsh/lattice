@@ -37,10 +37,10 @@ void FlangerProcessor::process(float** inputs, float** outputs, std::size_t bloc
     std::copy(inputs[0], inputs[0] + blockSize, inputLeft.begin());
     std::copy(inputs[1], inputs[1] + blockSize, inputRight.begin());
     
-    const float lfoFreq = getParameter("LFO Frequency");
-    const float fdb = getParameter("Feedback");
-    const float gain = getParameter("Gain");
-    const float maxdel = getParameter("Max Delay");
+    const float lfoFreq = getParameterValue("LFO Frequency");
+    const float fdb = getParameterValue("Feedback");
+    const float gain = getParameterValue("Gain");
+    const float maxdel = getParameterValue("Max Delay");
     
     // Apply the flanger effect to the input data
     auto &outL = flangerLeft(inputLeft, lfoFreq, fdb, gain, maxdel / 1000.f);
@@ -77,7 +77,7 @@ nlohmann::json FlangerProcessor::savePluginState()
 void FlangerProcessor::loadPluginState(nlohmann::json state)
 {
     auto json = nlohmann::json::parse(state.dump(4));
-
+    lattice::logDebug << json.dump(4);
     int idx = 0;
 
     // Iterate through array
@@ -86,43 +86,68 @@ void FlangerProcessor::loadPluginState(nlohmann::json state)
         // Read values
         float value = param.value("value", 0.f);
 
-        // Send value to host
-        sendParameterUpdateToHost(idx, value);
-
-        // Prepare message for webview
-        nlohmann::json j, data;
-        j["command"] = "parameterChange";
-        data["paramIdx"] = idx;
-        data["value"] = value;
-        j["data"] = data;
-
-        // Save to message queue
-        webviewMessageQueue.push_back(j);
+        // Add parameter updates to queue for host - these should be normalised
+        addParameterChange({idx, getParameter(idx).toNormalised(value), lattice::ParamChangeType::Value});
+        // Set parameter values for plugin
+        getParameters()[idx].value = value;
+        
+        // Save to message queue - denormalise value for webview
+        webviewMessageQueue.push_back(getParameterJson(idx, getParameter(idx).fromNormalised(value)));
         idx++;
     }
 }
 
+nlohmann::json FlangerProcessor::getParameterJson(size_t index, float value)
+{
+    // Prepare message for webview
+    nlohmann::json j, data;
+    j["command"] = "parameterChange";
+    data["paramIdx"] = index;
+    data["value"] = value;
+    j["data"] = data;
+    return j;
+}
 
-void FlangerProcessor::onMesssgeFromWebView(const nlohmann::json& j)
+void FlangerProcessor::onMessageFromWebView(const nlohmann::json& j)
 {
     try
     {
         auto json = j.at(0);
-        lattice::logInfo << json.dump(4);
 
         // Check if json is a string
         if (json.is_string() && json.get<std::string>() == "onEditorLoad")
         {
+            // If editor has just loaded - check for messages in queue..
             for (const auto &msg : webviewMessageQueue)
             {
-                sendWebViewMessage("hostMessageCallback(" + msg.dump() + ");");
+                sendWebViewMessage(msg.dump());
             }
+            
+            const auto parameters = getParameters();
+            
+            // Now update the UI so it matches the current state
+            // Values will typically be normalised
+            for (size_t i = 0; i < parameters.size(); i++)
+            {
+                sendWebViewMessage(getParameterJson(i, parameters[i].value).dump());
+            }
+            
         }
         else if (json.is_object())
         {
             float value = json.value("value", 0.f);
             auto paramIdx = json.value("paramIdx", -1);
-            sendParameterUpdateToHost(paramIdx, value);
+            auto gesture = json.value("gesture", "gesture");
+
+            if (gesture == "begin") {
+                addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureBegin});
+            } else if (gesture == "value") {
+                addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::Value});
+            } else if (gesture == "end") {
+                addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureEnd});
+            }
+            
+            getParameters()[paramIdx].value = value;
         }
         else
         {
@@ -135,10 +160,13 @@ void FlangerProcessor::onMesssgeFromWebView(const nlohmann::json& j)
     }
 }
 
-
+// This is called from the host. 'value' will be normalised
 void FlangerProcessor::setParameter(int paramId, double value)
 {
     getParameters()[paramId].value = value;
+    // We will send a normalised value to our web frontend
+    sendWebViewMessage(getParameterJson(paramId, getParameter(paramId).fromNormalised(value)).dump());
+    lattice::logDebug << "Value:" << getParameter(paramId).fromNormalised(value);
 }
 
 void FlangerProcessor::prepareToPlay(double sampleRate, uint32_t /*minFrameCount*/, uint32_t /*maxFrameCount*/)

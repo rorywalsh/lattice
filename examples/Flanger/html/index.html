@@ -127,10 +127,7 @@
     <script>
         // Function to be called when the window loads
         window.onload = function () {
-            console.log("Window loaded");
-            window.sendMessageFromUI(
-                "onEditorLoad"
-            );
+            window.sendMessageFromUI("onEditorLoad");
         };
         // Function to handle slider value changes
         function handleSliderChange(sliderId, valueDisplayId, paramIdx) {
@@ -139,12 +136,14 @@
 
             slider.addEventListener('value-change', function (event) {
                 const value = event.detail.value;
+                const gesture = event.detail.gesture;
                 valueDisplay.textContent = value.toFixed(4); // Display value with 4 decimal places
 
                 // Send the updated value to the host
                 window.sendMessageFromUI({
                     paramIdx: paramIdx,
-                    value: value
+                    value: value,
+                    gesture: gesture
                 });
             });
         }
@@ -167,6 +166,7 @@
                 // Update the corresponding slider
                 const sliderIds = ["maxDelaySlider", "lfoFrequencySlider", "feedbackSlider", "gainSlider"];
                 const slider = document.getElementById(sliderIds[paramIdx]);
+                
                 if (slider) {
                     slider.setAttribute('value', value);
                     console.log(value);

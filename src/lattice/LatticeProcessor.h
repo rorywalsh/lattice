@@ -60,12 +60,21 @@ public:
     
     // ============= Parameter Handling Methods =============
     virtual void setParameter(int paramId, double value) = 0;
-    virtual void onMesssgeFromWebView(const nlohmann::json &j) = 0;
+    virtual void onMessageFromWebView(const nlohmann::json &j) = 0;
     
+    // Return the full vector of parameters
     std::vector<Parameter>& getParameters() { return parameters; }
-    double getParameter(int paramId) { return getParameters()[paramId].value; }
-
-    double getParameter(const std::string& name) {
+    
+    // Access parameter object
+    Parameter& getParameter(int paramId) { return getParameters()[paramId]; }
+    Parameter* getParameter(const std::string& name) {
+        auto it = parameterMap.find(name);
+        return (it != parameterMap.end()) ? it->second : nullptr;
+    }
+    
+    // Return parameter values
+    double getParameterValue(int paramId) { return getParameters()[paramId].value; }
+    double getParameterValue(const std::string& name) {
         auto it = parameterMap.find(name);
         return (it != parameterMap.end()) ? it->second->value : 0.0;
     }
@@ -115,8 +124,8 @@ public:
     
     
     // ============= Callback Functions =============
-    std::function<void(uint32_t, float)> sendParameterUpdateToHost = nullptr;
     std::function<void(nlohmann::json)> sendWebViewMessage = nullptr;
+    std::function<void(lattice::ParameterChange)> addParameterChange = nullptr;
     
     
     

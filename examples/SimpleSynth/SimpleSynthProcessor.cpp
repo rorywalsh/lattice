@@ -131,7 +131,7 @@ void SimpleSynthProcessor::process(float** /*inputs*/, float** outputs, std::siz
 
         // Generate the output signal for this voice
         const std::vector<float>& voiceOutput = voice(
-            getParameter("Gain"),
+            getParameterValue("Gain"),
             getMidiNoteInHertz(voice.getNoteNumber()),
             voice.isPlaying()
         );
@@ -153,12 +153,22 @@ void SimpleSynthProcessor::process(float** /*inputs*/, float** outputs, std::siz
     }
 }
 
-void SimpleSynthProcessor::onMesssgeFromWebView(const nlohmann::json& j)
+void SimpleSynthProcessor::onMessageFromWebView(const nlohmann::json& j)
 {
     const auto json = j.at(0);
     float value = json.value("value", 0.f);
     auto paramIdx = json.value("paramIdx", -1);
-    sendParameterUpdateToHost(paramIdx, value);
+    auto gesture = j.value("gesture", "gesture");
+
+    if (gesture == "begin") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureBegin});
+    } else if (gesture == "value") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::Value});
+    } else if (gesture == "end") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureEnd});
+    }
+    
+    getParameters()[paramIdx].value = value;
 }
 
 // This can be called from the host - if so, update the

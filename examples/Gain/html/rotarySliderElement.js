@@ -42,6 +42,10 @@ class RotarySlider extends HTMLElement {
     this.startValue = this.props.value;
     window.addEventListener("pointermove", this.pointerMove);
     window.addEventListener("pointerup", this.pointerUp);
+    // Emit a custom event with the new value
+    this.dispatchEvent(new CustomEvent('value-change', {
+      detail: { value: this.props.value, gesture:"begin" }
+    }));
   }
 
   // Handle pointer move event
@@ -54,7 +58,7 @@ class RotarySlider extends HTMLElement {
 
     // Emit a custom event with the new value
     this.dispatchEvent(new CustomEvent('value-change', {
-      detail: { value: this.props.value }
+      detail: { value: this.props.value, gesture:"value" }
     }));
   }
 
@@ -62,6 +66,10 @@ class RotarySlider extends HTMLElement {
   pointerUp() {
     window.removeEventListener("pointermove", this.pointerMove);
     window.removeEventListener("pointerup", this.pointerUp);
+    // Emit a custom event with the new value
+    this.dispatchEvent(new CustomEvent('value-change', {
+      detail: { value: this.props.value, gesture:"end" }
+    }));
   }
 
   // Render the slider

@@ -166,6 +166,38 @@ namespace lattice {
             float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f)
             : name(paramName), min(paramMin), max(paramMax),
             value(paramValue), skew(paramSkew), increment(paramIncrement) {}
+        
+            // Converts a normalised value [0.0, 1.0] to the parameter's actual range
+            float fromNormalised(float normalized) const {
+                if (skew == 1.0f) {
+                    return min + (max - min) * normalized;
+                } else {
+                    return min + (max - min) * std::pow(normalized, skew);
+                }
+            }
+
+            // Converts a full-range value to its normalized [0.0, 1.0] equivalent
+            float toNormalised(float actualValue) const {
+                float norm = (actualValue - min) / (max - min);
+                if (skew == 1.0f || norm <= 0.0f) {
+                    return norm;
+                } else {
+                    return std::pow(norm, 1.0f / skew);
+                }
+            }
+    };
+
+    enum class ParamChangeType {
+        GestureBegin,
+        Value,
+        GestureEnd
+    };
+
+    struct ParameterChange {
+        int paramId;
+        double value = 0.0; //this should always be normalised!!
+        lattice::ParamChangeType type;
+        uint32_t time = 0;
     };
 
 } // namespace lattice

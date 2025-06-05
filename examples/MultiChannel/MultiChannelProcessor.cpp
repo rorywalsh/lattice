@@ -33,19 +33,29 @@ void MultiChannelProcessor::process(float** inputs, float** outputs, std::size_t
     
     for (uint32_t i = 0; i < blockSize; i++)
     {
-        outputs[0][i] = inputs[0][i] * getParameter("Gain 1");
-        outputs[1][i] = inputs[1][i] * getParameter("Gain 2");
-        outputs[2][i] = inputs[2][i] * getParameter("Gain 3");
-        outputs[3][i] = inputs[3][i] * getParameter("Gain 4");
+        outputs[0][i] = inputs[0][i] * getParameterValue("Gain 1");
+        outputs[1][i] = inputs[1][i] * getParameterValue("Gain 2");
+        outputs[2][i] = inputs[2][i] * getParameterValue("Gain 3");
+        outputs[3][i] = inputs[3][i] * getParameterValue("Gain 4");
     }
 }
 
-void MultiChannelProcessor::onMesssgeFromWebView(const nlohmann::json &j)
+void MultiChannelProcessor::onMessageFromWebView(const nlohmann::json &j)
 {
     std::cout << j.at(0).dump(4);
     float value = j.at(0).value("value", 0.f);
-    auto paramIdx = j.at(0).value("paramIdx", -1);
-    sendParameterUpdateToHost(paramIdx, value);
+    auto paramIdx = j.at(0).value("paramIdx", -1);    
+    auto gesture = j.value("gesture", "gesture");
+
+    if (gesture == "begin") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureBegin});
+    } else if (gesture == "value") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::Value});
+    } else if (gesture == "end") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureEnd});
+    }
+    
+    getParameters()[paramIdx].value = value;
 }
 
 // This can be called from the host - if so update the

@@ -5,10 +5,14 @@
     <style>
         /* Disable text selection globally */
         body {
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* IE/Edge */
-            user-select: none; /* Standard syntax */
+            -webkit-user-select: none;
+            /* Safari */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* IE/Edge */
+            user-select: none;
+            /* Standard syntax */
             background: #2d2d2d;
             color: white;
             font-family: Arial, sans-serif;
@@ -18,23 +22,30 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh; /* Ensure the body takes up the full viewport height */
-            position: relative; /* Required for absolute positioning of the SVG */
+            min-height: 100vh;
+            /* Ensure the body takes up the full viewport height */
+            position: relative;
+            /* Required for absolute positioning of the SVG */
         }
 
         .sliders-container {
             display: flex;
             flex-direction: row;
-            gap: 30px; /* Space between sliders */
+            gap: 30px;
+            /* Space between sliders */
             margin-top: 20px;
-            flex-wrap: wrap; /* Allow wrapping for smaller screens */
-            justify-content: center; /* Center sliders horizontally */
+            flex-wrap: wrap;
+            /* Allow wrapping for smaller screens */
+            justify-content: center;
+            /* Center sliders horizontally */
         }
 
         .control-group {
             text-align: center;
-            flex: 1; /* Allow sliders to grow and shrink */
-            min-width: 50px; /* Minimum width for each slider group */
+            flex: 1;
+            /* Allow sliders to grow and shrink */
+            min-width: 50px;
+            /* Minimum width for each slider group */
         }
 
         .value-display {
@@ -123,13 +134,16 @@
     <!-- Add the SVG to the bottom right corner -->
     <div class="lattice-svg">
         <svg width="90" height="42" viewBox="0 0 30 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3.19273 3.78658C4.03341 3.78658 4.79538 4.11232 5.36528 4.6385L7.30167 2.92842C7.1159 2.63402 7.0057 2.28637 7.0057 1.91366C7.0057 0.85818 7.86527 0 8.9295 0C9.99373 0 10.8533 0.855048 10.8533 1.91366C10.8533 2.26758 10.7557 2.59956 10.5857 2.88457L12.7551 4.69487C13.3313 4.13424 14.1216 3.78658 14.9937 3.78658C15.8313 3.78658 16.5932 4.10918 17.1631 4.63223L19.0869 2.93156C18.898 2.63715 18.7909 2.28637 18.7909 1.91366C18.7909 0.85818 19.6505 0 20.7148 0C21.779 0 22.6386 0.855048 22.6386 1.91366C22.6386 2.26758 22.5409 2.59956 22.3709 2.88143L24.5561 4.69799C25.1354 4.13423 25.9257 3.78658 26.7979 3.78658C28.5674 3.78658 30 5.21163 30 6.97181C30 8.73199 28.5674 10.1571 26.7979 10.1571C25.932 10.1571 25.1448 9.81254 24.5686 9.25505L22.3646 11.1092C22.5378 11.3942 22.6386 11.7293 22.6386 12.0864C22.6386 13.1418 21.779 14 20.7148 14C19.6505 14 18.7909 13.145 18.7909 12.0864C18.7909 11.1374 19.4868 10.3512 20.3999 10.2009V3.79911C20.0661 3.74273 19.7607 3.60494 19.5088 3.40136L17.5882 5.10202C17.9723 5.6282 18.2022 6.27338 18.2022 6.97181C18.2022 8.73199 16.7695 10.1571 15 10.1571C13.2305 10.1571 11.7979 8.73199 11.7979 6.97181C11.7979 6.3047 12.0057 5.68457 12.3583 5.17405L10.1889 3.36377C9.85204 3.64878 9.41754 3.82417 8.93895 3.82417C8.47925 3.82417 8.06049 3.66444 7.72988 3.39822L5.79349 5.10516C6.17762 5.63133 6.40432 6.27338 6.40432 6.97181C6.40432 8.73199 4.9717 10.1571 3.20218 10.1571C1.43266 10.1571 4.47813e-05 8.73199 4.47813e-05 6.97181C-0.00940105 5.21477 1.42322 3.78658 3.19273 3.78658ZM21.9522 10.6331L24.153 8.78211C23.7972 8.26847 23.5863 7.64519 23.5863 6.97495C23.5863 6.31097 23.7909 5.69084 24.1436 5.18032L21.9585 3.36377C21.6971 3.58614 21.376 3.7396 21.0202 3.79911V10.2072C21.376 10.2635 21.694 10.4139 21.9522 10.6331Z" fill="url(#paint0_linear_60_5)"/>
+            <path
+                d="M3.19273 3.78658C4.03341 3.78658 4.79538 4.11232 5.36528 4.6385L7.30167 2.92842C7.1159 2.63402 7.0057 2.28637 7.0057 1.91366C7.0057 0.85818 7.86527 0 8.9295 0C9.99373 0 10.8533 0.855048 10.8533 1.91366C10.8533 2.26758 10.7557 2.59956 10.5857 2.88457L12.7551 4.69487C13.3313 4.13424 14.1216 3.78658 14.9937 3.78658C15.8313 3.78658 16.5932 4.10918 17.1631 4.63223L19.0869 2.93156C18.898 2.63715 18.7909 2.28637 18.7909 1.91366C18.7909 0.85818 19.6505 0 20.7148 0C21.779 0 22.6386 0.855048 22.6386 1.91366C22.6386 2.26758 22.5409 2.59956 22.3709 2.88143L24.5561 4.69799C25.1354 4.13423 25.9257 3.78658 26.7979 3.78658C28.5674 3.78658 30 5.21163 30 6.97181C30 8.73199 28.5674 10.1571 26.7979 10.1571C25.932 10.1571 25.1448 9.81254 24.5686 9.25505L22.3646 11.1092C22.5378 11.3942 22.6386 11.7293 22.6386 12.0864C22.6386 13.1418 21.779 14 20.7148 14C19.6505 14 18.7909 13.145 18.7909 12.0864C18.7909 11.1374 19.4868 10.3512 20.3999 10.2009V3.79911C20.0661 3.74273 19.7607 3.60494 19.5088 3.40136L17.5882 5.10202C17.9723 5.6282 18.2022 6.27338 18.2022 6.97181C18.2022 8.73199 16.7695 10.1571 15 10.1571C13.2305 10.1571 11.7979 8.73199 11.7979 6.97181C11.7979 6.3047 12.0057 5.68457 12.3583 5.17405L10.1889 3.36377C9.85204 3.64878 9.41754 3.82417 8.93895 3.82417C8.47925 3.82417 8.06049 3.66444 7.72988 3.39822L5.79349 5.10516C6.17762 5.63133 6.40432 6.27338 6.40432 6.97181C6.40432 8.73199 4.9717 10.1571 3.20218 10.1571C1.43266 10.1571 4.47813e-05 8.73199 4.47813e-05 6.97181C-0.00940105 5.21477 1.42322 3.78658 3.19273 3.78658ZM21.9522 10.6331L24.153 8.78211C23.7972 8.26847 23.5863 7.64519 23.5863 6.97495C23.5863 6.31097 23.7909 5.69084 24.1436 5.18032L21.9585 3.36377C21.6971 3.58614 21.376 3.7396 21.0202 3.79911V10.2072C21.376 10.2635 21.694 10.4139 21.9522 10.6331Z"
+                fill="url(#paint0_linear_60_5)" />
             <defs>
-                <linearGradient id="paint0_linear_60_5" x1="29.995" y1="7.00144" x2="-0.0104693" y2="7.00144" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#72C0A7"/>
-                    <stop offset="0.4237" stop-color="#40B5BF"/>
-                    <stop offset="0.7835" stop-color="#00AECD"/>
-                    <stop offset="1" stop-color="#00ABD1"/>
+                <linearGradient id="paint0_linear_60_5" x1="29.995" y1="7.00144" x2="-0.0104693" y2="7.00144"
+                    gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#72C0A7" />
+                    <stop offset="0.4237" stop-color="#40B5BF" />
+                    <stop offset="0.7835" stop-color="#00AECD" />
+                    <stop offset="1" stop-color="#00ABD1" />
                 </linearGradient>
             </defs>
         </svg>
@@ -144,12 +158,14 @@
 
             slider.addEventListener('value-change', function (event) {
                 const value = event.detail.value;
+                const gesture = event.detail.gesture;
                 valueDisplay.textContent = value.toFixed(4); // Display value with 4 decimal places
 
                 // Send the updated value to the host
                 window.sendMessageFromUI({
                     paramIdx: paramIdx,
-                    value: value
+                    value: value,
+                    gesture: gesture
                 });
             });
         }

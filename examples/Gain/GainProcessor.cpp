@@ -31,17 +31,27 @@ void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSi
     {
         for (uint32_t ch = 0; ch < channels; ++ch)
         {
-            outputs[ch][i] = inputs[ch][i]*getParameter("Gain");
+            outputs[ch][i] = inputs[ch][i]*getParameterValue("Gain");
         }
     }
 }
 
-void GainProcessor::onMesssgeFromWebView(const nlohmann::json& j)
+void GainProcessor::onMessageFromWebView(const nlohmann::json& j)
 {
     std::cout << j.at(0).dump(4);
     float value = j.at(0).value("value", 0.f);
     auto paramIdx = j.at(0).value("paramIdx", -1);
-    sendParameterUpdateToHost(paramIdx, value);
+    auto gesture = j.value("gesture", "gesture");
+
+    if (gesture == "begin") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureBegin});
+    } else if (gesture == "value") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::Value});
+    } else if (gesture == "end") {
+        addParameterChange({paramIdx, getParameter(paramIdx).toNormalised(value), lattice::ParamChangeType::GestureEnd});
+    }
+    
+    getParameters()[paramIdx].value = value;
 }
 
 // This can be called from the host - if so update the

@@ -2,13 +2,14 @@
 
 #include "../LatticeServer.h"
 #include "../LatticeUtils.h"
+#include "../LatticeStructs.h"
 #include <deque>
 
 #include "platform/choc_DisableAllWarnings.h"
 #include <clap/helpers/host-proxy.hxx>
 #include <clap/helpers/plugin.hxx>
 
-
+#include <readerwriterqueue.h>
 #include "platform/choc_ReenableAllWarnings.h"
 #if !defined(LATTICE_LINUX)
 #include <clap/ext/params.h>
@@ -92,6 +93,7 @@ public:
     bool guiHide() noexcept override;
     bool guiSetParent(const clap_window* window) noexcept override;
 
+    moodycamel::ReaderWriterQueue<lattice::ParameterChange> parameterChanges;
 private:
     lattice::Processor& processor; // reference to processor
     std::string htmlMntPoint = {};
