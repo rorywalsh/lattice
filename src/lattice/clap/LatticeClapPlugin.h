@@ -18,7 +18,7 @@
 #include "text/choc_Files.h"
 #include "../LatticeMemoryQueue.h"
 #endif
-
+#include "gui/choc_MessageLoop.h"
 
 
 
@@ -97,6 +97,7 @@ public:
 
     moodycamel::ReaderWriterQueue<lattice::ParameterChange> parameterChanges;
 private:
+    choc::messageloop::Timer timer;
     lattice::Processor& processor; // reference to processor
     std::string htmlMntPoint = {};
     lattice::Server server;
@@ -122,13 +123,11 @@ private:
     void sendParameterValueToHost(clap_id paramId, double value) const noexcept;
 
 
-    void onIdle() {};
-    void onIdleScheduler();
-    void startOnIdle();
-    void stopOnIdle();
+    bool timerCallback();
 
-    std::atomic<bool> isIdleRunning;
-    std::thread idleThread;
+
+    moodycamel::ReaderWriterQueue<std::string> webviewMessageQueue;
+    bool isTimerRunning = false;
     int idleCounter = 0;
 };
 

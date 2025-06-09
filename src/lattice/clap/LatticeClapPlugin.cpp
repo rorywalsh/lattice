@@ -1,5 +1,4 @@
 #include "LatticeClapPlugin.h"
-#include "gui/choc_WebView.h"
 #include "../LatticeProcessor.h"
 #include <nlohmann/json.hpp>
 #include PLUGIN_INFO_HEADER  // Include the dynamically generated header
@@ -41,7 +40,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 #else
         if (webview)
         {
-
+            webviewMessageQueue.enqueue(script);
         }
         else
         {
@@ -493,7 +492,10 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
 
     try {
-        startOnIdle();
+
+        timer = choc::messageloop::Timer(16, [this]() {
+            return this->timerCallback();
+        });
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
@@ -537,6 +539,7 @@ void LatticeClapPlugin::guiDestroy() noexcept
     usleep(50000);
 #else
     webview.reset();
+    isTimerRunning = false;
 #endif
 }
 
@@ -684,29 +687,14 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
     }
 }
 
-void LatticeClapPlugin::onIdleScheduler()
+bool LatticeClapPlugin::timerCallback()
 {
-    while (isIdleRunning)
+    std::string script;
+
+    while (webviewMessageQueue.try_dequeue(script))
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60Hz
-        onIdle();
+        webview->evaluateJavascript(script);
     }
-}
-
-// Start idle thread in a separate non-realtime thread
-void LatticeClapPlugin::startOnIdle()
-{
-    isIdleRunning = true;
-    idleThread = std::thread(&LatticeClapPlugin::onIdleScheduler, this);
-}
-
-// Stop the idle background thread
-void LatticeClapPlugin::stopOnIdle()
-{
-    isIdleRunning = false;
-
-    if (idleThread.joinable())
-    {
-        idleThread.join();
-    }
+    
+    return isTimerRunning;
 }
