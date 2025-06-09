@@ -429,6 +429,19 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) 
     }
 }
 
+void LatticeClapPlugin::startTimer()
+{
+    isTimerRunning = true;
+    timer = choc::messageloop::Timer(16, [this]() {
+        return this->timerCallback();
+    });
+}
+
+void LatticeClapPlugin::stopTimer()
+{
+    isTimerRunning = false;
+}
+
 
 //========================================================================================
 // Temporary file creation for Linux
@@ -493,9 +506,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 
     try {
 
-        timer = choc::messageloop::Timer(16, [this]() {
-            return this->timerCallback();
-        });
+        startTimer();
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
@@ -539,7 +550,7 @@ void LatticeClapPlugin::guiDestroy() noexcept
     usleep(50000);
 #else
     webview.reset();
-    isTimerRunning = false;
+    stopTimer();
 #endif
 }
 
