@@ -119,6 +119,7 @@ set(LATTICE_INCLUDE_DIRS
     ${json_SOURCE_DIR}/include
     ${httplib_SOURCE_DIR}
     ${cppcodec_SOURCE_DIR}
+    ${readerwriterqueue_SOURCE_DIR}
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

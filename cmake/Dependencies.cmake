@@ -53,8 +53,14 @@ FetchContent_Declare(
     GIT_TAG        master
 )
 
+FetchContent_Declare(
+    readerwriterqueue
+    GIT_REPOSITORY https://github.com/rorywalsh/readerwriterqueue.git
+    GIT_TAG ab2082837bda45e8a1a2d6934b211212ae3e2d1b
+)
+
 # Make all dependencies available except aurora
-FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json httplib cppcodec)
+FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json httplib cppcodec readerwriterqueue)
 
 # Enable OLD behavior for FetchContent_Populate to silence the warning
 cmake_policy(SET CMP0169 OLD)
