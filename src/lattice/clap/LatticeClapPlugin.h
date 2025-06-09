@@ -120,8 +120,16 @@ private:
 
     // Utility functions for parameter handling
     void sendParameterValueToHost(clap_id paramId, double value) const noexcept;
-    void beginParamAdjust(clap_id paramId) noexcept;
-    void endParamAdjust(clap_id paramId) noexcept;
+
+
+    void onIdle() {};
+    void onIdleScheduler();
+    void startOnIdle();
+    void stopOnIdle();
+
+    std::atomic<bool> isIdleRunning;
+    std::thread idleThread;
+    int idleCounter = 0;
 };
 
 class LatticeProcessorPluginFactory {

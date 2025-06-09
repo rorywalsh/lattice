@@ -41,10 +41,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 #else
         if (webview)
         {
-            std::stringstream fullScript;
-            // Wrap call with function name
-            fullScript << functionName << "(" << script << ")";
-            webview->evaluateJavascript(fullScript.str());
+
         }
         else
         {
@@ -496,6 +493,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
     guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
 
     try {
+        startOnIdle();
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
@@ -683,5 +681,32 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
     catch (const std::exception &e)
     {
         return false;
+    }
+}
+
+void LatticeClapPlugin::onIdleScheduler()
+{
+    while (isIdleRunning)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60Hz
+        onIdle();
+    }
+}
+
+// Start idle thread in a separate non-realtime thread
+void LatticeClapPlugin::startOnIdle()
+{
+    isIdleRunning = true;
+    idleThread = std::thread(&LatticeClapPlugin::onIdleScheduler, this);
+}
+
+// Stop the idle background thread
+void LatticeClapPlugin::stopOnIdle()
+{
+    isIdleRunning = false;
+
+    if (idleThread.joinable())
+    {
+        idleThread.join();
     }
 }
