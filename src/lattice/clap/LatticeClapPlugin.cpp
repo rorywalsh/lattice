@@ -500,6 +500,11 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
         
+        options.webviewIsReady = [&] (choc::ui::WebView& webview)
+        {
+            processor.onWebViewIsReady();
+        };
+        
         webview = std::make_unique<choc::ui::WebView>(options);
         
         if (!webview)

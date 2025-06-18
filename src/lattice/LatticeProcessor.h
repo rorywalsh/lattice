@@ -51,13 +51,12 @@ public:
     Processor() { parameters.reserve(64); }
     // Virtual destructor
     virtual ~Processor() = default;
-
     
     // ============= Audio Processing Methods =============
     virtual void process(float** inputs, float** outputs, std::size_t blockSize) = 0;
     virtual void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) = 0;
     
-    
+   
     // ============= Parameter Handling Methods =============
     virtual void setParameter(int paramId, double value) = 0;
     virtual void onMessageFromWebView(const nlohmann::json &j) = 0;
@@ -83,7 +82,6 @@ public:
         parameters.push_back(parameter);
         parameterMap[parameter.name] = &parameters.back(); // Fast lookup
     }
-    
     
     // ============= GUI Methods =================
     void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
@@ -112,23 +110,19 @@ public:
         channelConfig.addOutputBus(name, channels, grouping);
     }
     
-    
     // ============= Note Event Handling =================
     void addNoteEvent(const lattice::NoteEvent& noteEvent) { noteEvents.push_back(noteEvent); }
     std::deque<NoteEvent>& getNoteEvents() { return noteEvents; }
-    
     
     // ============= State Management ============= 
     virtual nlohmann::json savePluginState() { return {}; }
     virtual void loadPluginState(nlohmann::json /*state*/) {}
     
-    
     // ============= Callback Functions =============
+    std::function<void()> onWebViewIsReady = nullptr;
     std::function<void(nlohmann::json)> sendWebViewMessage = nullptr;
     std::function<void(lattice::ParameterChange)> addParameterChange = nullptr;
-    
-    
-    
+   
 private:
     int editorWidth = 800;
     int editorHeight = 800;
