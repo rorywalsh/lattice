@@ -516,7 +516,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
         
-        options.webviewIsReady = [&] (choc::ui::WebView& webview)
+        options.webviewIsReady = [&] (choc::ui::WebView& /*webview*/)
         {
             processor.onWebViewIsReady();
         };
