@@ -8,7 +8,7 @@
 #elif LATTICE_MACOS
 extern "C"
 {
-    bool attachViewToParent(void *childView, void *parentView); // Forward declaration
+    bool attachViewToParent(void* childView, void* parentView); // Forward declaration
 }
 #elif LATTICE_LINUX
 #include <X11/Xlib.h>
@@ -17,8 +17,8 @@ extern "C"
 
 
 LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& processor)
-: clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore, clap::helpers::CheckingLevel::Maximal>(
-    &descriptor, host), processor(processor)
+    : clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore, clap::helpers::CheckingLevel::Maximal>(
+        &descriptor, host), processor(processor)
 #if LATTICE_LINUX
     , instanceMap(lattice::SharedMemoryQueue::CreateDefaultInstanceTracker(true)),
     memoryQueue("/lattice_" + instanceMap.getInstanceId(), 100, 1024)
@@ -26,10 +26,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 {
 
     auto rootPath = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
-   
-    if (!server.isThreadRunning())  
+
+    if (!server.isThreadRunning())
         server.start(rootPath);
-    
+
     htmlMntPoint = "http://127.0.0.1:" + std::to_string(server.getCurrentPort()) + "/index.html";
     processor.setServerUrl(htmlMntPoint);
 
@@ -40,7 +40,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 #else
         if (webview)
         {
-            webviewMessageQueue.enqueue(script);
+            std::stringstream fullScript;
+            // Wrap call with function name
+            fullScript << functionName << "(" << script << ")";
+            webviewMessageQueue.enqueue(fullScript.str());
         }
         else
         {
@@ -49,13 +52,13 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 #endif
     };
 
-    
+
     processor.addParameterChange = [this](lattice::ParameterChange param) {
-        parameterChanges.enqueue(param);  
+        parameterChanges.enqueue(param);
     };
-    
-    
-    
+
+
+
 #ifdef LATTICE_LINUX
     webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());
 #endif
@@ -64,7 +67,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 LatticeClapPlugin::~LatticeClapPlugin()
 {
 #ifdef LATTICE_LINUX
-	// Terminate the webview process
+    // Terminate the webview process
     unlink(std::string(webviewProcessPath).c_str());
 #endif
 }
@@ -99,7 +102,7 @@ bool LatticeClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_
 
 
     info->id = index;
-    
+
     //use unique buffers for input/output
     info->in_place_pair = CLAP_INVALID_ID;
 
@@ -107,22 +110,22 @@ bool LatticeClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_
         info->flags = CLAP_AUDIO_PORT_IS_MAIN;
     else
         info->flags = 0;
-        
+
     info->port_type = CLAP_PORT_STEREO;
 
     return true;
 }
 
-bool LatticeClapPlugin::stateSave(const clap_ostream *ostream) noexcept
+bool LatticeClapPlugin::stateSave(const clap_ostream* ostream) noexcept
 {
     auto json = processor.savePluginState();
     auto res = ostream->write(ostream, json.dump().data(), json.dump().size());
-    return (res == - 1 ? false : true);
+    return (res == -1 ? false : true);
 }
 
-bool LatticeClapPlugin::stateLoad(const clap_istream *istream) noexcept
+bool LatticeClapPlugin::stateLoad(const clap_istream* istream) noexcept
 {
-    
+
     std::vector<char> buffer;
     const int64_t chunkSize = 2048; // Read in chunks
 
@@ -133,7 +136,7 @@ bool LatticeClapPlugin::stateLoad(const clap_istream *istream) noexcept
 
         // Read the next chunk
         int64_t bytes_read = istream->read(istream, buffer.data() + old_size, chunkSize);
-        
+
         if (bytes_read < 0)
             return false; // Error reading from the stream
 
@@ -142,18 +145,18 @@ bool LatticeClapPlugin::stateLoad(const clap_istream *istream) noexcept
 
         if (bytes_read < chunkSize)
             break;
-        
+
     }
 
     // Parse the JSON data
-    try 
+    try
     {
         std::string json_str(buffer.begin(), buffer.end());
         nlohmann::json json = nlohmann::json::parse(json_str); // Parse JSON string
         processor.loadPluginState(json); // Load the plugin state from the JSON object
         return true;
-    } 
-    catch (const std::exception &e)
+    }
+    catch (const std::exception& e)
     {
         // Handle JSON parsing errors
         std::cerr << "Failed to parse JSON: " << e.what() << std::endl;
@@ -164,7 +167,7 @@ bool LatticeClapPlugin::stateLoad(const clap_istream *istream) noexcept
 bool LatticeClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) const noexcept
 {
     auto numParameters = processor.getParameters().size();
-    
+
     if (paramId >= numParameters)
         return false;
 
@@ -183,22 +186,22 @@ bool LatticeClapPlugin::paramsInfo(uint32_t paramId, clap_param_info* info) cons
     return true;
 }
 
-bool LatticeClapPlugin::notePortsInfo(uint32_t index, bool isInput, clap_note_port_info *info) const noexcept
+bool LatticeClapPlugin::notePortsInfo(uint32_t index, bool isInput, clap_note_port_info* info) const noexcept
 {
-    if (!isInput || index) 
+    if (!isInput || index)
         return false;
     info->id = 0;
     info->supported_dialects = CLAP_NOTE_DIALECT_MIDI | CLAP_NOTE_DIALECT_MIDI_MPE | CLAP_NOTE_DIALECT_CLAP;
     info->preferred_dialect = CLAP_NOTE_DIALECT_CLAP;
     snprintf(info->name, sizeof(info->name), "%s", "Note Port");
-    
+
     return true;
 }
 
 bool LatticeClapPlugin::paramsValue(clap_id paramId, double* value) noexcept
 {
     auto numParameters = processor.getParameters().size();
-    
+
     if (paramId > numParameters)
         return false;
 
@@ -209,25 +212,25 @@ bool LatticeClapPlugin::paramsValue(clap_id paramId, double* value) noexcept
 bool LatticeClapPlugin::paramsValueToText(clap_id paramId, double value, char* display, uint32_t size) noexcept
 {
     auto numParameters = processor.getParameters().size();
-    
+
     if (paramId > numParameters)
         return false;
-    
+
     const auto updatedValue = processor.getParameter(paramId).fromNormalised(value);
-    
-//    processor.setParameter(paramId, updatedValue);
-    
-    
+
+    //    processor.setParameter(paramId, updatedValue);
+
+
     snprintf(display, size, "%.2f", updatedValue);
     std::cout << display << std::endl;
-    
+
     return true;
 }
 
 bool LatticeClapPlugin::paramsTextToValue(clap_id paramId, const char* display, double* value) noexcept
 {
     auto numParameters = processor.getParameters().size();
-    
+
     if (paramId > numParameters)
         return false;
 
@@ -249,7 +252,7 @@ bool LatticeClapPlugin::activate(double sampleRate, uint32_t minFrameCount, uint
     return true;
 }
 
-clap_process_status LatticeClapPlugin::process(const clap_process* process) noexcept 
+clap_process_status LatticeClapPlugin::process(const clap_process* process) noexcept
 {
     if (process->audio_outputs_count <= 0)
         return CLAP_PROCESS_CONTINUE;
@@ -272,87 +275,89 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
     auto event = process->in_events;
     for (uint32_t i = 0; i < event->size(event); ++i)
     {
-     auto nextEvent = event->get(event, i);
-     if (nextEvent->space_id == CLAP_CORE_EVENT_SPACE_ID &&
-         nextEvent->type == CLAP_EVENT_PARAM_VALUE)
-     {
-         auto p = reinterpret_cast<const clap_event_param_value*>(nextEvent);
-         if (p->param_id < processor.getParameters().size())
-         {
-                 nlohmann::json j, h;
-                 j["command"] = "parameterChange";
-                 h["paramIdx"] = p->param_id;
-                 h["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
-                 j["data"] = h;
+        auto nextEvent = event->get(event, i);
+        if (nextEvent->space_id == CLAP_CORE_EVENT_SPACE_ID &&
+            nextEvent->type == CLAP_EVENT_PARAM_VALUE)
+        {
+            auto p = reinterpret_cast<const clap_event_param_value*>(nextEvent);
+            if (p->param_id < processor.getParameters().size())
+            {
+                nlohmann::json j, h;
+                j["command"] = "parameterChange";
+                h["paramIdx"] = p->param_id;
+                h["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
+                j["data"] = h;
 
-                 std::stringstream fullScript;
-                 // Wrap call with function name
-                 auto functionName = processor.getWebViewSendFunctionName();
-                 fullScript << functionName << "(" << j.dump() << ")";
+                std::stringstream fullScript;
+                // Wrap call with function name
+                auto functionName = processor.getWebViewSendFunctionName();
+                fullScript << functionName << "(" << j.dump() << ")";
 #ifdef LATTICE_LINUX
 
 #else
                 if (webview)
-                    webview->evaluateJavascript(fullScript.str());
+                {
+                    webviewMessageQueue.enqueue(fullScript.str());
+                }
 #endif
-                 sendParameterValueToHost(p->param_id, p->value);
+                sendParameterValueToHost(p->param_id, p->value);
 
-         }
-     }
-     else if (nextEvent->type == CLAP_EVENT_NOTE_ON || nextEvent->type == CLAP_EVENT_NOTE_OFF || nextEvent->type == CLAP_EVENT_NOTE_CHOKE) {
-         const clap_event_note_t *noteEvent = (const clap_event_note_t *) nextEvent;
+            }
+        }
+        else if (nextEvent->type == CLAP_EVENT_NOTE_ON || nextEvent->type == CLAP_EVENT_NOTE_OFF || nextEvent->type == CLAP_EVENT_NOTE_CHOKE) {
+            const clap_event_note_t* noteEvent = (const clap_event_note_t*)nextEvent;
 
-         // Map CLAP event types to NoteEvent::Type
-         lattice::NoteEvent::Type type = {};
-         
-         switch (nextEvent->type)
-         {
-             case CLAP_EVENT_NOTE_ON:
-                 type = lattice::NoteEvent::Type::noteOn;
-                 break;
-             case CLAP_EVENT_NOTE_OFF:
-                 type = lattice::NoteEvent::Type::noteOff;
-                 break;
-             case CLAP_EVENT_NOTE_CHOKE:
-                 type = lattice::NoteEvent::Type::noteChoke;
-                 break;
-             default:
-                 // Handle unexpected event types (optional)
-                 std::cerr << "Unexpected CLAP note event type: " << nextEvent->type << std::endl;
-                 break;
-         }
-         
-         processor.addNoteEvent({type,
-                 noteEvent->key,
-                 noteEvent->velocity,
-                 noteEvent->note_id,
-                 noteEvent->header.time});
-         }
-     else if (nextEvent->type == CLAP_EVENT_MIDI){
-         std::cout << "MIDI Event" << std::endl;
-     }
+            // Map CLAP event types to NoteEvent::Type
+            lattice::NoteEvent::Type type = {};
+
+            switch (nextEvent->type)
+            {
+            case CLAP_EVENT_NOTE_ON:
+                type = lattice::NoteEvent::Type::noteOn;
+                break;
+            case CLAP_EVENT_NOTE_OFF:
+                type = lattice::NoteEvent::Type::noteOff;
+                break;
+            case CLAP_EVENT_NOTE_CHOKE:
+                type = lattice::NoteEvent::Type::noteChoke;
+                break;
+            default:
+                // Handle unexpected event types (optional)
+                std::cerr << "Unexpected CLAP note event type: " << nextEvent->type << std::endl;
+                break;
+            }
+
+            processor.addNoteEvent({ type,
+                    noteEvent->key,
+                    noteEvent->velocity,
+                    noteEvent->note_id,
+                    noteEvent->header.time });
+        }
+        else if (nextEvent->type == CLAP_EVENT_MIDI) {
+            std::cout << "MIDI Event" << std::endl;
+        }
     }
 
     lattice::ParameterChange change;
     while (parameterChanges.try_dequeue(change)) {
         switch (change.type) {
-            case lattice::ParamChangeType::GestureBegin:
-                emitGestureBegin(change.paramId, process->out_events);
-                break;
+        case lattice::ParamChangeType::GestureBegin:
+            emitGestureBegin(change.paramId, process->out_events);
+            break;
 
-            case lattice::ParamChangeType::Value:
-                emitValue(change.paramId, change.value, process->out_events);
-                break;
+        case lattice::ParamChangeType::Value:
+            emitValue(change.paramId, change.value, process->out_events);
+            break;
 
-            case lattice::ParamChangeType::GestureEnd:
-                emitGestureEnd(change.paramId, process->out_events);
-                break;
+        case lattice::ParamChangeType::GestureEnd:
+            emitGestureEnd(change.paramId, process->out_events);
+            break;
 
-            case lattice::ParamChangeType::Complete:
-                emitGestureBegin(change.paramId, process->out_events);
-                emitValue(change.paramId, change.value, process->out_events);
-                emitGestureEnd(change.paramId, process->out_events);
-                break;
+        case lattice::ParamChangeType::Complete:
+            emitGestureBegin(change.paramId, process->out_events);
+            emitValue(change.paramId, change.value, process->out_events);
+            emitGestureEnd(change.paramId, process->out_events);
+            break;
         }
     }
     return CLAP_PROCESS_CONTINUE;
@@ -372,7 +377,7 @@ void LatticeClapPlugin::emitGestureBegin(clap_id paramId, const clap_output_even
     outEvents->try_push(outEvents, (const clap_event_header_t*)&ev);
 }
 
-void LatticeClapPlugin::emitGestureEnd(clap_id paramId, const clap_output_events_t* outEvents) 
+void LatticeClapPlugin::emitGestureEnd(clap_id paramId, const clap_output_events_t* outEvents)
 {
     clap_event_param_gesture ev = {};
     ev.header.size = sizeof(ev);
@@ -406,27 +411,40 @@ bool LatticeClapPlugin::guiIsApiSupported(const char* api, bool /*isFloating*/) 
 {
     // We support embedded and floating windows
     return strcmp(api, CLAP_WINDOW_API_WIN32) == 0 ||
-           strcmp(api, CLAP_WINDOW_API_COCOA) == 0 ||
-           strcmp(api, CLAP_WINDOW_API_X11) == 0;
+        strcmp(api, CLAP_WINDOW_API_COCOA) == 0 ||
+        strcmp(api, CLAP_WINDOW_API_X11) == 0;
 }
 
 
 void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId, double value) const noexcept
 {
     //checkMainThread();
-    
+
     if (auto* host = _host.host())
     {
-        if (auto* params = (const clap_host_params*) host->get_extension(host, CLAP_EXT_PARAMS)) 
+        if (auto* params = (const clap_host_params*)host->get_extension(host, CLAP_EXT_PARAMS))
         {
             double currentValue = processor.getParameterValue(paramId); // Assuming you have a getter
-            if (currentValue != value) 
+            if (currentValue != value)
             { // Only update if the value has changed
                 processor.setParameter(paramId, value); // Update the processor's state
                 params->request_flush(host); // Request a flush
             }
         }
     }
+}
+
+void LatticeClapPlugin::startTimer()
+{
+    isTimerRunning = true;
+    timer = choc::messageloop::Timer(16, [this]() {
+        return this->timerCallback();
+    });
+}
+
+void LatticeClapPlugin::stopTimer()
+{
+    isTimerRunning = false;
 }
 
 
@@ -437,7 +455,7 @@ std::string LatticeClapPlugin::createTempFile(const char* /*path*/)
 {
 #ifdef LATTICE_LINUX
     // Allocate memory for the temporary file name
-    char *temp_filename = new char[strlen(patt) + 1]; // +1 for the null terminator
+    char* temp_filename = new char[strlen(patt) + 1]; // +1 for the null terminator
     std::strcpy(temp_filename, path);
 
     // Create a temporary file
@@ -493,9 +511,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 
     try {
 
-        timer = choc::messageloop::Timer(16, [this]() {
-            return this->timerCallback();
-        });
+        startTimer();
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
@@ -506,7 +522,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         };
         
         webview = std::make_unique<choc::ui::WebView>(options);
-        
+
         if (!webview)
             return false;
 
@@ -519,8 +535,9 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 
         webview->navigate(htmlMntPoint);
         return true;
-        
-    } catch (const std::exception& e) {
+
+    }
+    catch (const std::exception& e) {
         std::cerr << "Exception in guiCreate: " << e.what() << std::endl;
         return false;
     }
@@ -533,7 +550,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 
 }
 
-void LatticeClapPlugin::guiDestroy() noexcept 
+void LatticeClapPlugin::guiDestroy() noexcept
 {
 #ifdef LATTICE_LINUX
 
@@ -544,16 +561,16 @@ void LatticeClapPlugin::guiDestroy() noexcept
     usleep(50000);
 #else
     webview.reset();
-    isTimerRunning = false;
+    stopTimer();
 #endif
 }
 
-bool LatticeClapPlugin::guiSetScale(double) noexcept 
+bool LatticeClapPlugin::guiSetScale(double) noexcept
 {
     return true;
 }
 
-bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept 
+bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept
 {
     currentWidth = width;
     currentHeight = height;
@@ -564,14 +581,14 @@ bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept
 #endif
 }
 
-bool LatticeClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept 
+bool LatticeClapPlugin::guiGetSize(uint32_t* width, uint32_t* height) noexcept
 {
     *width = currentWidth;
     *height = currentHeight;
     return true;
 }
 
-bool LatticeClapPlugin::guiShow() noexcept 
+bool LatticeClapPlugin::guiShow() noexcept
 {
 #ifdef LATTICE_LINUX
     nlohmann::json message;
@@ -585,7 +602,7 @@ bool LatticeClapPlugin::guiShow() noexcept
 #endif
 }
 
-bool LatticeClapPlugin::guiHide() noexcept 
+bool LatticeClapPlugin::guiHide() noexcept
 {
 #ifdef LATTICE_LINUX
     return true;
@@ -594,7 +611,7 @@ bool LatticeClapPlugin::guiHide() noexcept
 #endif
 }
 
-bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
+bool LatticeClapPlugin::guiSetParent(const clap_window* window) noexcept
 {
     try
     {
@@ -604,8 +621,8 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 
         if (strcmp(window->api, CLAP_WINDOW_API_WIN32) == 0)
         {
-            auto *child = static_cast<HWND>(webview->getViewHandle());
-            auto *parent = static_cast<::HWND>(window->win32);
+            auto* child = static_cast<HWND>(webview->getViewHandle());
+            auto* parent = static_cast<::HWND>(window->win32);
 
             RECT parentRect;
             ::GetClientRect(parent, &parentRect);
@@ -625,8 +642,8 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 
         if (strcmp(window->api, CLAP_WINDOW_API_COCOA) == 0)
         {
-            void *parent = window->cocoa;
-            void *child = webview->getViewHandle();
+            void* parent = window->cocoa;
+            void* child = webview->getViewHandle();
             bool result = attachViewToParent(child, parent);
             return result;
         }
@@ -639,7 +656,7 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
             xStr << 0;
             yStr << 0;
             widthStr << processor.getEditorWidth();
-            heightStr <<  processor.getEditorHeight();;
+            heightStr << processor.getEditorHeight();;
             scaleStr << 1;
             std::string isTransparentStr = "true";
             std::string enableDevToolsStr = "true";
@@ -650,7 +667,7 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
             if (webviewPid == 0)
             {
 
-                std::vector<std::string> stringArgs = {webviewProcessPath,
+                std::vector<std::string> stringArgs = { webviewProcessPath,
                                                        x11WindowIdStr.str(),
                                                        "/lattice_" + instanceMap.getInstanceId(),
                                                        xStr.str(),
@@ -659,17 +676,17 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
                                                        heightStr.str(),
                                                        scaleStr.str(),
                                                        isTransparentStr,
-                                                       enableDevToolsStr};
+                                                       enableDevToolsStr };
 
-                std::vector<const char *> args;
-                for (const auto &arg : stringArgs)
+                std::vector<const char*> args;
+                for (const auto& arg : stringArgs)
                     args.push_back(arg.c_str());
 
 
                 usleep(10000);
                 args.push_back(nullptr); // Null terminator for exec
                 lattice::logInfo << "Webview process Name:" << args[0];
-                execv(args[0], const_cast<char *const *>(args.data()));
+                execv(args[0], const_cast<char* const*>(args.data()));
                 perror(args[0]); // Print error if exec fails
                 // now kill the process that started the webview...
                 exit(1);
@@ -686,7 +703,7 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept
 
         return false;
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         return false;
     }
@@ -698,8 +715,13 @@ bool LatticeClapPlugin::timerCallback()
 
     while (webviewMessageQueue.try_dequeue(script))
     {
-        webview->evaluateJavascript(script);
+        webview->evaluateJavascript(script, [](const std::string& error, const choc::value::ValueView& result) {
+            if (!error.empty())
+            {
+                lattice::logDebug << "JavaScript Error: " << error;
+            }
+        });
     }
-    
+
     return isTimerRunning;
 }

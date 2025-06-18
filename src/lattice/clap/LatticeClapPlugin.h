@@ -122,7 +122,8 @@ private:
     // Utility functions for parameter handling
     void sendParameterValueToHost(clap_id paramId, double value) const noexcept;
 
-
+    void startTimer();
+    void stopTimer();
     bool timerCallback();
 
 
