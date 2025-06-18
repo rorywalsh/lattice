@@ -101,6 +101,9 @@ public:
     void setWebViewSendFunctionName(const std::string& functionName){    webViewSendFunctionName = functionName;  }
     std::string getWebViewSendFunctionName() const {    return webViewSendFunctionName;    }
 
+    // Override to get notifed when webview is ready
+    virtual void onWebViewIsReady(){};
+    
     // ============= Channel Configuration =================
     lattice::ChannelConfig getChannelConfig() const { return channelConfig; }
     void addInputBus(const std::string &name, int channels, lattice::ChannelLayout grouping) {
@@ -119,7 +122,6 @@ public:
     virtual void loadPluginState(nlohmann::json /*state*/) {}
     
     // ============= Callback Functions =============
-    std::function<void()> onWebViewIsReady = nullptr;
     std::function<void(nlohmann::json)> sendWebViewMessage = nullptr;
     std::function<void(lattice::ParameterChange)> addParameterChange = nullptr;
    
