@@ -518,6 +518,16 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         
         options.webviewIsReady = [&] (choc::ui::WebView& /*webview*/)
         {
+            // Add JavaScript interface for parameter control
+            webview->bind("sendMessageFromUI",
+                          [this](const choc::value::ValueView &args) -> choc::value::Value
+                          {
+                              nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
+                              processor.onMessageFromWebView(j);
+                              return {};
+                          });
+
+            bool result = webview->navigate(htmlMntPoint);
             processor.onWebViewIsReady();
         };
         
@@ -526,14 +536,9 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         if (!webview)
             return false;
 
-        // Add JavaScript interface for parameter control
-        webview->bind("sendMessageFromUI", [this](const choc::value::ValueView& args) -> choc::value::Value {
-            nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
-            processor.onMessageFromWebView(j);
-            return {};
-        });
 
-        webview->navigate(htmlMntPoint);
+
+
         return true;
 
     }
