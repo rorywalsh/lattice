@@ -515,11 +515,12 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         choc::ui::WebView::Options options;
         options.enableDebugMode = true;
         options.acceptsFirstMouseClick = true;
+        webview = std::make_unique<choc::ui::WebView>(options);
         
-        options.webviewIsReady = [&] (choc::ui::WebView& /*webview*/)
+        options.webviewIsReady = [&] (choc::ui::WebView& webview)
         {
             // Add JavaScript interface for parameter control
-            webview->bind("sendMessageFromUI",
+            webview.bind("sendMessageFromUI",
                           [this](const choc::value::ValueView &args) -> choc::value::Value
                           {
                               nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
@@ -527,11 +528,11 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                               return {};
                           });
 
-            bool result = webview->navigate(htmlMntPoint);
+            bool result = webview.navigate(htmlMntPoint);
             processor.onWebViewIsReady();
         };
         
-        webview = std::make_unique<choc::ui::WebView>(options);
+        
 
         if (!webview)
             return false;
