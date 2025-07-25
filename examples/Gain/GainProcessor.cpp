@@ -22,7 +22,7 @@ GainProcessor::GainProcessor()
     setEditorSize(400, 300);
 }
 
-void GainProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
+void GainProcessor::process(double** inputs, double** outputs, std::size_t blockSize)
 {
 
 	const auto channels = getChannelConfig().getTotalNumInputChannels();

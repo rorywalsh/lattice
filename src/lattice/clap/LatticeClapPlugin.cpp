@@ -257,13 +257,13 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
     if (process->audio_outputs_count <= 0)
         return CLAP_PROCESS_CONTINUE;
 
-    float** outputs = process->audio_outputs[0].data32;
+    double** outputs = process->audio_outputs[0].data64;
     std::size_t blockSize = process->frames_count;
 
     // If there are inputs...
     if (process->audio_inputs)
     {
-        float** inputs = process->audio_inputs[0].data32;
+        double** inputs = process->audio_inputs[0].data64;
         processor.process(inputs, outputs, blockSize);
     }
     else

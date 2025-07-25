@@ -28,7 +28,7 @@ FlangerProcessor::FlangerProcessor()
 }
 
 
-void FlangerProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
+void FlangerProcessor::process(double** inputs, double** outputs, std::size_t blockSize)
 {
     // Resize the input buffers to match the block size
     inputLeft.resize(blockSize);
