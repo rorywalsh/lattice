@@ -107,9 +107,9 @@ bool LatticeClapPlugin::audioPortsInfo(uint32_t index, bool isInput, clap_audio_
     info->in_place_pair = CLAP_INVALID_ID;
 
     if (index == 0)
-        info->flags = CLAP_AUDIO_PORT_IS_MAIN;
+        info->flags = CLAP_AUDIO_PORT_IS_MAIN | CLAP_AUDIO_PORT_SUPPORTS_64BITS;
     else
-        info->flags = 0;
+        info->flags = CLAP_AUDIO_PORT_SUPPORTS_64BITS;
 
     info->port_type = CLAP_PORT_STEREO;
 
@@ -257,13 +257,23 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
     if (process->audio_outputs_count <= 0)
         return CLAP_PROCESS_CONTINUE;
 
-    double** outputs = process->audio_outputs[0].data64;
+    // Determine if we're using 64-bit or 32-bit buffers
+    const bool using64Bit = (process->audio_outputs[0].data64 != nullptr);
+
+    // Cast to appropriate type (MYFLT = double or float)
+    double** outputs = using64Bit
+        ? process->audio_outputs[0].data64
+        : reinterpret_cast<double**>(process->audio_outputs[0].data32);
+
     std::size_t blockSize = process->frames_count;
 
     // If there are inputs...
-    if (process->audio_inputs)
+    if (process->audio_inputs && process->audio_inputs_count > 0)
     {
-        double** inputs = process->audio_inputs[0].data64;
+        double** inputs = using64Bit
+            ? process->audio_inputs[0].data64
+            : reinterpret_cast<double**>(process->audio_inputs[0].data32);
+        
         processor.process(inputs, outputs, blockSize);
     }
     else
