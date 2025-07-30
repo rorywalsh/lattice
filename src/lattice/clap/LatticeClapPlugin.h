@@ -5,20 +5,20 @@
 #include "../LatticeStructs.h"
 #include <deque>
 
-#include "platform/choc_DisableAllWarnings.h"
+#include "choc/platform/choc_DisableAllWarnings.h"
 #include <clap/helpers/host-proxy.hxx>
 #include <clap/helpers/plugin.hxx>
 
 #include <readerwriterqueue.h>
-#include "platform/choc_ReenableAllWarnings.h"
+#include "choc/platform/choc_ReenableAllWarnings.h"
 #if !defined(LATTICE_LINUX)
 #include <clap/ext/params.h>
-#include "gui/choc_WebView.h"
+#include "choc/gui/choc_WebView.h"
 #else
 #include "text/choc_Files.h"
 #include "../LatticeMemoryQueue.h"
 #endif
-#include "gui/choc_MessageLoop.h"
+#include "choc/gui/choc_MessageLoop.h"
 
 
 
@@ -129,7 +129,6 @@ private:
 
     moodycamel::ReaderWriterQueue<std::string> webviewMessageQueue;
     bool isTimerRunning = false;
-    int idleCounter = 0;
 };
 
 class LatticeProcessorPluginFactory {

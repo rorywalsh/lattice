@@ -257,9 +257,6 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
     if (process->audio_outputs_count <= 0)
         return CLAP_PROCESS_CONTINUE;
 
-    // Determine if we're using 64-bit or 32-bit buffers
-    const bool using64Bit = (process->audio_outputs[0].data64 != nullptr);
-
     float** outputs = process->audio_outputs[0].data32;
 
     std::size_t blockSize = process->frames_count;
@@ -724,7 +721,7 @@ bool LatticeClapPlugin::timerCallback()
 
     while (webviewMessageQueue.try_dequeue(script))
     {
-        webview->evaluateJavascript(script, [](const std::string& error, const choc::value::ValueView& result) {
+        webview->evaluateJavascript(script, [](const std::string& error, const choc::value::ValueView& /*result*/) {
             if (!error.empty())
             {
                 lattice::logDebug << "JavaScript Error: " << error;
