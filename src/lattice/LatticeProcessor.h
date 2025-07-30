@@ -53,7 +53,7 @@ public:
     virtual ~Processor() = default;
     
     // ============= Audio Processing Methods =============
-    virtual void process(double** inputs, double** outputs, std::size_t blockSize) = 0;
+    virtual void process(float** inputs, float** outputs, std::size_t blockSize) = 0;
     virtual void prepareToPlay(double sampleRate, uint32_t minFrameCount, uint32_t maxFrameCount) = 0;
     
    

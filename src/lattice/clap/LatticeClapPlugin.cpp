@@ -260,19 +260,14 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
     // Determine if we're using 64-bit or 32-bit buffers
     const bool using64Bit = (process->audio_outputs[0].data64 != nullptr);
 
-    // Cast to appropriate type (MYFLT = double or float)
-    double** outputs = using64Bit
-        ? process->audio_outputs[0].data64
-        : reinterpret_cast<double**>(process->audio_outputs[0].data32);
+    float** outputs = process->audio_outputs[0].data32;
 
     std::size_t blockSize = process->frames_count;
 
     // If there are inputs...
     if (process->audio_inputs && process->audio_inputs_count > 0)
     {
-        double** inputs = using64Bit
-            ? process->audio_inputs[0].data64
-            : reinterpret_cast<double**>(process->audio_inputs[0].data32);
+        float** inputs = process->audio_inputs[0].data32;
         
         processor.process(inputs, outputs, blockSize);
     }

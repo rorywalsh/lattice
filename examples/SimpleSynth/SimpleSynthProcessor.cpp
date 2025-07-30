@@ -108,7 +108,7 @@ void SimpleSynthProcessor::manageVoices(lattice::NoteEvent noteEvent)
 
 
 //====================================================================================
-void SimpleSynthProcessor::process(double** /*inputs*/, double** outputs, std::size_t blockSize)
+void SimpleSynthProcessor::process(float** /*inputs*/, float** outputs, std::size_t blockSize)
 {
     
     auto& noteEvents = getNoteEvents();

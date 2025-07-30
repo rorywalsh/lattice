@@ -28,7 +28,7 @@ MultiChannelProcessor::MultiChannelProcessor()
     setEditorSize(600, 300);
 }
 
-void MultiChannelProcessor::process(double** inputs, double** outputs, std::size_t blockSize)
+void MultiChannelProcessor::process(float** inputs, float** outputs, std::size_t blockSize)
 {
     
     for (uint32_t i = 0; i < blockSize; i++)
