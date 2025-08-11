@@ -115,6 +115,7 @@ set(LATTICE_INCLUDE_DIRS
     ${clap_SOURCE_DIR}/include
     ${clap-helpers_SOURCE_DIR}/include
     ${choc_SOURCE_DIR}
+    ${clap-wrapper_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
     ${json_SOURCE_DIR}/include
     ${httplib_SOURCE_DIR}
