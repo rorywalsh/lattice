@@ -5,6 +5,7 @@
 #include "FactoryImpl.h"
 #include "../LatticeProcessor.h"
 #include "LatticeClapPlugin.h"
+#include "clapwrapper/auv2.h"
 #include <iostream>
 #include PLUGIN_INFO_HEADER  // Include the dynamically generated header
 
@@ -53,11 +54,41 @@ namespace impl
         .create_plugin = createPluginInstance,
     };
 
+    bool clap_get_auv2_info(const clap_plugin_factory_as_auv2* /*factory*/, uint32_t index,
+                                   clap_plugin_info_as_auv2_t *info)
+    {
+        if (index > 1)
+            return false;
+
+        if (index == 0)
+        {
+            strncpy(info->au_type, "aufx", 5); // use the features to determine the type
+            strncpy(info->au_subt, "CaBB", 5);
+        }
+        if (index == 1)
+        {
+            strncpy(info->au_type, "aufx", 5); // use the features to determine the type
+            strncpy(info->au_subt, "CaBB", 5);
+        }
+
+        return true;
+    }
+
     const void* getFactory(const char* factory_id)
     {
-      if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID) == 0) {
-        return &factoryStruct;
+        if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID) == 0) {
+            return &factoryStruct;
         }
+        
+        if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_INFO_AUV2) == 0)
+        {
+            static const struct clap_plugin_factory_as_auv2 auv2_factory = {
+                "Cabb",      // manu
+                "CabbageAudio", // manu name
+                clap_get_auv2_info};
+            return &auv2_factory;
+        }
+        
         return nullptr;
     }
 
