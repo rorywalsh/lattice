@@ -80,15 +80,6 @@ namespace impl
             return &factoryStruct;
         }
         
-        if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_INFO_AUV2) == 0)
-        {
-            static const struct clap_plugin_factory_as_auv2 auv2_factory = {
-                "Cabb",      // manu
-                "CabbageAudio", // manu name
-                clap_get_auv2_info};
-            return &auv2_factory;
-        }
-        
         return nullptr;
     }
 
