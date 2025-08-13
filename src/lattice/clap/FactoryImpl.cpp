@@ -21,21 +21,22 @@ namespace impl
 
     uint32_t getPluginCount(const clap_plugin_factory* /*factory*/)
     {
+        // Only supports single plugin libraries for now
         return 1;
     }
 
     const clap_plugin_descriptor* getPluginDescriptor(const clap_plugin_factory* /*factory*/, uint32_t index)
     {
-        //the descriptor is defiend in CabbagePluginInfo.h
+        // The descriptor is defiend in PLUGIN_INFO_HEADER which is set via Cmake
         if (index == 0)
-            return &descriptor;
+            return getDescriptor();
 
         return nullptr;
     }
 
     const clap_plugin* createPluginInstance(const clap_plugin_factory* /*factory*/, const clap_host* host, const char* plugin_id)
     {
-        if (strcmp(plugin_id, descriptor.id))
+        if (strcmp(plugin_id, getDescriptor()->id))
         {
             std::cerr << "Error: plugin_id '" << plugin_id << "' not found!" << std::endl;
             return nullptr;

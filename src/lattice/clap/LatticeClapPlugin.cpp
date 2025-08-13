@@ -18,7 +18,7 @@ extern "C"
 
 LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& processor)
     : clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore, clap::helpers::CheckingLevel::Maximal>(
-        &descriptor, host), processor(processor)
+        getDescriptor(), host), processor(processor)
 #if LATTICE_LINUX
     , instanceMap(lattice::SharedMemoryQueue::CreateDefaultInstanceTracker(true)),
     memoryQueue("/lattice_" + instanceMap.getInstanceId(), 100, 1024)

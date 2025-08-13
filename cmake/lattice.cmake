@@ -63,7 +63,8 @@ function(generate_plugin_header TARGET)
 
 static const char* features[] = { ${FEATURES_ARRAY}, nullptr };
 
-static constexpr clap_plugin_descriptor descriptor = {
+inline const clap_plugin_descriptor* getDescriptor() {
+    static const clap_plugin_descriptor descriptor = {
     .clap_version = CLAP_VERSION,
     .id = \"${PLUGIN_INFO_UNIQUE_ID}\",
     .name = \"${PLUGIN_INFO_NAME}\",
@@ -73,8 +74,10 @@ static constexpr clap_plugin_descriptor descriptor = {
     .support_url = \"${PLUGIN_INFO_SUPPORT_URL}\",
     .version = \"${PLUGIN_INFO_VERSION}\",
     .description = \"${PLUGIN_INFO_DESCRIPTION}\",
-    .features = features
-};
+    .features = features    
+    };
+    return &descriptor;
+}
 ")
 
     # Add the generated header to the target's include directories
