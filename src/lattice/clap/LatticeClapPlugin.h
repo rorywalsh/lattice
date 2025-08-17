@@ -99,7 +99,7 @@ private:
     choc::messageloop::Timer timer;
     lattice::Processor& processor; // reference to processor
     std::string htmlMntPoint = {};
-    lattice::Server server;
+
     // Add GUI members
 #ifdef LATTICE_LINUX
     void* webview = nullptr;

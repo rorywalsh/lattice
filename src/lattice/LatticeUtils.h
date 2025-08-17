@@ -317,7 +317,7 @@ class File
     static std::string loadJSFile(const std::string &filePath);
 
     // Reads the entire content of a file into a string
-    static std::string getFileAsString(std::string csdFile = "");
+    static std::string getFileAsString(const std::string& filePath);
 
     // Retrieves the number of input channels (nchnls_i) from the .csd file
     static int getNumberOfInputChannels(const std::string &csdFile);
@@ -345,6 +345,8 @@ class File
 
     static bool usesBundledResources() { return exists(getResourceDirFromBundle()); }
 
+    // Gets the MIME type of a file based on its extension
+    static std::string getMimeType(const std::string& path);
   private:
 
 

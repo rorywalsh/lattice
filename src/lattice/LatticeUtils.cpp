@@ -132,6 +132,87 @@ std::string File::getParentDirectory(const std::string &currentFile)
     return currentFile; // If no parent, return the original path
 }
 
+std::string File::getMimeType(const std::string& path) 
+{
+    // Convert to lowercase for case-insensitive comparison
+    auto lowerPath = path;
+    std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    // Text and Documents
+    if (lowerPath.ends_with(".html") || lowerPath.ends_with(".htm")) return "text/html";
+    if (lowerPath.ends_with(".css"))  return "text/css";
+    if (lowerPath.ends_with(".csv"))  return "text/csv";
+    if (lowerPath.ends_with(".txt"))  return "text/plain";
+    if (lowerPath.ends_with(".xml"))  return "text/xml";
+    if (lowerPath.ends_with(".vtt"))  return "text/vtt";
+
+    // JavaScript and JSON
+    if (lowerPath.ends_with(".js"))    return "application/javascript";
+    if (lowerPath.ends_with(".json"))  return "application/json";
+    if (lowerPath.ends_with(".jsonld")) return "application/ld+json";
+    if (lowerPath.ends_with(".wasm"))  return "application/wasm";
+
+    // Images
+    if (lowerPath.ends_with(".png"))  return "image/png";
+    if (lowerPath.ends_with(".jpg") || lowerPath.ends_with(".jpeg")) return "image/jpeg";
+    if (lowerPath.ends_with(".gif"))  return "image/gif";
+    if (lowerPath.ends_with(".webp")) return "image/webp";
+    if (lowerPath.ends_with(".svg"))  return "image/svg+xml";
+    if (lowerPath.ends_with(".ico"))  return "image/x-icon";
+    if (lowerPath.ends_with(".bmp"))  return "image/bmp";
+    if (lowerPath.ends_with(".tiff")) return "image/tiff";
+
+    // Fonts
+    if (lowerPath.ends_with(".woff"))  return "font/woff";
+    if (lowerPath.ends_with(".woff2")) return "font/woff2";
+    if (lowerPath.ends_with(".ttf"))   return "font/ttf";
+    if (lowerPath.ends_with(".otf"))   return "font/otf";
+
+    // Audio
+    if (lowerPath.ends_with(".mp3"))  return "audio/mpeg";
+    if (lowerPath.ends_with(".wav"))  return "audio/wav";
+    if (lowerPath.ends_with(".ogg"))  return "audio/ogg";
+    if (lowerPath.ends_with(".flac")) return "audio/flac";
+    if (lowerPath.ends_with(".aac"))  return "audio/aac";
+    if (lowerPath.ends_with(".weba")) return "audio/webm";
+
+    // Video
+    if (lowerPath.ends_with(".mp4"))  return "video/mp4";
+    if (lowerPath.ends_with(".webm")) return "video/webm";
+    if (lowerPath.ends_with(".ogv"))  return "video/ogg";
+    if (lowerPath.ends_with(".avi"))  return "video/x-msvideo";
+    if (lowerPath.ends_with(".mov"))  return "video/quicktime";
+
+    // Archives
+    if (lowerPath.ends_with(".zip"))  return "application/zip";
+    if (lowerPath.ends_with(".tar"))  return "application/x-tar";
+    if (lowerPath.ends_with(".gz"))   return "application/gzip";
+    if (lowerPath.ends_with(".7z"))   return "application/x-7z-compressed";
+    if (lowerPath.ends_with(".rar"))  return "application/vnd.rar";
+
+    // Documents
+    if (lowerPath.ends_with(".pdf"))  return "application/pdf";
+    if (lowerPath.ends_with(".doc"))  return "application/msword";
+    if (lowerPath.ends_with(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (lowerPath.ends_with(".xls"))  return "application/vnd.ms-excel";
+    if (lowerPath.ends_with(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (lowerPath.ends_with(".ppt"))  return "application/vnd.ms-powerpoint";
+    if (lowerPath.ends_with(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+    // WebAssembly and Binary
+    if (lowerPath.ends_with(".wasm")) return "application/wasm";
+    if (lowerPath.ends_with(".bin"))  return "application/octet-stream";
+
+    // Fallbacks
+    if (lowerPath.ends_with(".php"))  return "application/x-httpd-php";
+    if (lowerPath.ends_with(".sh"))   return "application/x-sh";
+    if (lowerPath.ends_with(".exe"))  return "application/x-msdownload";
+
+    // Default for unknown types
+    return "application/octet-stream";
+}
+
 std::string File::withExtension(const std::string &filePath, const std::string &newExtension)
 {
     std::filesystem::path path(filePath);
@@ -199,6 +280,18 @@ std::string File::formatPath(const std::string &path)
     }
 
     return sanitizedPath;
+}
+
+std::string File::getFileAsString(const std::string& filePath) 
+{
+    std::ifstream file(filePath);
+    if (!file) {
+        throw std::runtime_error("Could not open file: " + filePath);
+    }
+
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
 }
 
 std::vector<std::string> File::getFilesOfType(const std::string &dirPath, const std::string &fileTypes)
