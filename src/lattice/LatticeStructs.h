@@ -29,6 +29,13 @@
 #include <string>
 #include "LatticeUtils.h"
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace lattice {
 
     // Represents a musical note event (e.g., MIDI note on/off).
