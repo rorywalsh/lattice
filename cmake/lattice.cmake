@@ -94,8 +94,6 @@ endfunction()
 set(LATTICE_SOURCE_FILES
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeProcessor.h"
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeStructs.h"
-    "${LATTICE_ROOT_DIR}/src/lattice/LatticeServer.h"
-    "${LATTICE_ROOT_DIR}/src/lattice/LatticeServer.cpp"
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeUtils.h"
     "${LATTICE_ROOT_DIR}/src/lattice/LatticeUtils.cpp"
     "${LATTICE_ROOT_DIR}/src/lattice/clap/LatticeClapPlugin.h"
@@ -121,7 +119,6 @@ set(LATTICE_INCLUDE_DIRS
     ${clap-wrapper_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
     ${json_SOURCE_DIR}/include
-    ${httplib_SOURCE_DIR}
     ${cppcodec_SOURCE_DIR}
     ${readerwriterqueue_SOURCE_DIR}
 )

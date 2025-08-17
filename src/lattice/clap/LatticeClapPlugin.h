@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../LatticeServer.h"
 #include "../LatticeUtils.h"
 #include "../LatticeStructs.h"
 #include <deque>

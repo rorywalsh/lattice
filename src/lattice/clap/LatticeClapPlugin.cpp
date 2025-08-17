@@ -25,14 +25,8 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 #endif
 {
 
-    auto rootPath = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
-
-    if (!server.isThreadRunning())
-        server.start(rootPath);
-
-    htmlMntPoint = "http://127.0.0.1:" + std::to_string(server.getCurrentPort()) + "/index.html";
-    processor.setServerUrl(htmlMntPoint);
-
+    lattice::logDebug << "Logger initialized and ready!";
+    
     auto functionName = processor.getWebViewSendFunctionName();
     processor.sendWebViewMessage = [this, functionName](const std::string& script) {
 #ifdef LATTICE_LINUX
@@ -527,19 +521,45 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                               processor.onMessageFromWebView(j);
                               return {};
                           });
-
-            webview.navigate(htmlMntPoint);
+            lattice::logDebug << "Before navigate() call";
+            webview.navigate("choc://app/");
+            lattice::logDebug << "After navigate() call";
             processor.onWebViewIsReady();
+        };
+        
+        options.fetchResource = [this](const std::string& path) {
+            choc::ui::WebView::Options::Resource resource;
+            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
+            if(!lattice::File::exists(lattice::File::joinPath(resourceDir, path)))
+                lattice::logDebug << "Res file doesn't exist at: " << lattice::File::joinPath(resourceDir, path);
+
+            if (path == "/" || path == "/index.html")
+            {
+                auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, "index.html"));
+                lattice::logDebug << res;
+                resource.data = std::vector<uint8_t>(res.begin(), res.end());
+                resource.mimeType = "text/html";
+                return resource;
+            }
+            else
+            {
+                auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, path));
+                resource.data = std::vector<uint8_t>(res.begin(), res.end());
+                resource.mimeType = lattice::File::getMimeType(path);
+                return resource;
+                
+            }
+            return choc::ui::WebView::Options::Resource{}; // Always return empty
         };
         
         webview = std::make_unique<choc::ui::WebView>(options);
 
         if (!webview)
+        {
+            lattice::logDebug << "WebView is null";
             return false;
-
-
-
-
+        }
+        
         return true;
 
     }

@@ -36,12 +36,6 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    httplib
-    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-    GIT_TAG master  
-)
-
-FetchContent_Declare(
     aurora
     GIT_REPOSITORY https://github.com/vlazzarini/aurora.git
     GIT_TAG main  
@@ -60,7 +54,7 @@ FetchContent_Declare(
 )
 
 # Make all dependencies available except aurora
-FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json httplib cppcodec readerwriterqueue)
+FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json cppcodec readerwriterqueue)
 
 # Enable OLD behavior for FetchContent_Populate to silence the warning
 cmake_policy(SET CMP0169 OLD)
