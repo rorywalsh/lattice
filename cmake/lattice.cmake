@@ -14,6 +14,9 @@ function(generate_plugin_header TARGET)
     set(DEFAULT_SUPPORT_URL "")
     set(DEFAULT_VERSION "1.0.0")
     set(DEFAULT_DESCRIPTION "Default plugin description")
+    set(DEFAULT_AU_SUBTYPE "Latt")
+    set(DEFAULT_AU_TYPE "aufx")
+    set(DEFAULT_MANUFACTURER_CODE "Latt")
 
     # Apply defaults if missing
     if(NOT PLUGIN_INFO_OUTPUT_DIRECTORY)
@@ -24,6 +27,9 @@ function(generate_plugin_header TARGET)
     endif()
     if(NOT PLUGIN_INFO_NAME)
         set(PLUGIN_INFO_NAME "${DEFAULT_NAME}")
+    endif()
+    if(NOT PLUGIN_INFO_MANUFACTURER_CODE)
+        set(PLUGIN_INFO_MANUFACTURER_CODE "${DEFAULT_MANUFACTURER_CODE}")
     endif()
     if(NOT PLUGIN_INFO_VENDOR)
         set(PLUGIN_INFO_VENDOR "${DEFAULT_VENDOR}")
@@ -42,6 +48,12 @@ function(generate_plugin_header TARGET)
     endif()
     if(NOT PLUGIN_INFO_DESCRIPTION)
         set(PLUGIN_INFO_DESCRIPTION "${DEFAULT_DESCRIPTION}")
+    endif()
+    if(NOT PLUGIN_INFO_AU_SUBTYPE)
+        set(PLUGIN_INFO_AU_SUBTYPE "${DEFAULT_AU_SUBTYPE}")
+    endif()
+    if(NOT PLUGIN_INFO_AU_TYPE)
+        set(PLUGIN_INFO_AU_TYPE "${DEFAULT_AU_TYPE}")
     endif()
 
     # Convert FEATURES list into a valid C++ array initializer format
@@ -62,6 +74,11 @@ function(generate_plugin_header TARGET)
 #include <clap/clap.h>  // Ensure this is the correct CLAP header location
 
 static const char* features[] = { ${FEATURES_ARRAY}, nullptr };
+
+#define LATTICE_AU_SUBTYPE \"${PLUGIN_INFO_AU_SUBTYPE}\"
+#define LATTICE_AU_TYPE \"${PLUGIN_INFO_AU_TYPE}\"
+#define LATTICE_MANUFACTURER_NAME \"${PLUGIN_INFO_NAME}\"
+#define LATTICE_MANUFACTURER_CODE \"${PLUGIN_INFO_NAME}\"
 
 inline const clap_plugin_descriptor* getDescriptor() {
     static const clap_plugin_descriptor descriptor = {

@@ -61,16 +61,10 @@ namespace impl
         if (index > 1)
             return false;
 
-        if (index == 0)
-        {
-            strncpy(info->au_type, "aufx", 5); // use the features to determine the type
-            strncpy(info->au_subt, "CaBB", 5);
-        }
-        if (index == 1)
-        {
-            strncpy(info->au_type, "aufx", 5); // use the features to determine the type
-            strncpy(info->au_subt, "CaBB", 5);
-        }
+        strncpy(info->au_type, LATTICE_AU_TYPE, 5); // use the features to determine the type
+        strncpy(info->au_subt, LATTICE_AU_SUBTYPE, 5);
+
+
 
         return true;
     }
@@ -84,8 +78,8 @@ namespace impl
         if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_INFO_AUV2) == 0)
         {
             static const struct clap_plugin_factory_as_auv2 auv2_factory = {
-                "Cabb",      // manu
-                "CabbageAudio", // manu name
+                LATTICE_MANUFACTURER_CODE,      // manu code
+                LATTICE_MANUFACTURER_NAME, // manu name
                 clap_get_auv2_info};
             return &auv2_factory;
         }
