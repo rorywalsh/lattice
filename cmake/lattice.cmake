@@ -78,7 +78,7 @@ static const char* features[] = { ${FEATURES_ARRAY}, nullptr };
 #define LATTICE_AU_SUBTYPE \"${PLUGIN_INFO_AU_SUBTYPE}\"
 #define LATTICE_AU_TYPE \"${PLUGIN_INFO_AU_TYPE}\"
 #define LATTICE_MANUFACTURER_NAME \"${PLUGIN_INFO_NAME}\"
-#define LATTICE_MANUFACTURER_CODE \"${PLUGIN_INFO_NAME}\"
+#define LATTICE_MANUFACTURER_CODE \"${PLUGIN_INFO_MANUFACTURER_CODE}\"
 
 inline const clap_plugin_descriptor* getDescriptor() {
     static const clap_plugin_descriptor descriptor = {
