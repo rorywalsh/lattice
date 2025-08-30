@@ -521,9 +521,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                               processor.onMessageFromWebView(j);
                               return {};
                           });
-            lattice::logDebug << "Before navigate() call";
             webview.navigate("choc://app/");
-            lattice::logDebug << "After navigate() call";
             processor.onWebViewIsReady();
         };
         
@@ -536,7 +534,6 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             if (path == "/" || path == "/index.html")
             {
                 auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, "index.html"));
-                lattice::logDebug << res;
                 resource.data = std::vector<uint8_t>(res.begin(), res.end());
                 resource.mimeType = "text/html";
                 return resource;
