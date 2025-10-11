@@ -265,39 +265,16 @@ class File
     static nlohmann::json extractPropsFromJS(const std::string &jsContent);
 
     // Joins a directory path and a variable number of args into a single path
+        // Joins a directory path and a variable number of args into a single path
     template <typename... Args>
     static std::string joinPath(const std::string &basePath, Args... parts)
     {
-        std::vector<std::string> pathComponents = {basePath, parts...};
+        std::filesystem::path result = basePath;
 
-        char separator =
-#if defined(_WIN32)
-            '\\';
-#else
-            '/';
-#endif
+        // Fold expression to append all parts
+        ((result /= parts), ...);
 
-        std::ostringstream oss;
-        
-        // Ensure the base path is handled correctly
-        bool isFirst = true;
-        for (std::string part : pathComponents)
-        {
-            if (part.empty()) continue;
-
-            // Remove leading separators from subsequent parts
-            if (!isFirst && part.front() == separator)
-                part = part.substr(1);
-
-            // Append separator if needed
-            if (!oss.str().empty() && oss.str().back() != separator)
-                oss << separator;
-
-            oss << part;
-            isFirst = false;
-        }
-
-        return oss.str();
+        return result.string();
     }
 	
 
