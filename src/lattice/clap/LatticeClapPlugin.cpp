@@ -521,33 +521,123 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                               processor.onMessageFromWebView(j);
                               return {};
                           });
-            webview.navigate("choc://app/");
-            processor.onWebViewIsReady();
-        };
-        
-        options.fetchResource = [this](const std::string& path) {
-            choc::ui::WebView::Options::Resource resource;
-            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
-            if(!lattice::File::exists(lattice::File::joinPath(resourceDir, path)))
-                lattice::logDebug << "Res file doesn't exist at: " << lattice::File::joinPath(resourceDir, path);
 
-            if (path == "/" || path == "/index.html")
+            // Load HTML content directly instead of using navigate(), avoids platform-specific WebView 
+            // differences with custom URL schemes (choc://app/) and ensures consistent behavior across 
+            // macOS, Windows, and Linux. By setting a base href to https://choc.localhost/, all resource 
+            // requests appear as same-origin HTTPS requests that our fetchResource callback can handle uniformly.
+            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
+                                                                 : processor.getMountPoint();
+            std::string indexPath = lattice::File::joinPath(resourceDir, "index.html");
+            if (lattice::File::exists(indexPath))
             {
-                auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, "index.html"));
-                resource.data = std::vector<uint8_t>(res.begin(), res.end());
-                resource.mimeType = "text/html";
-                return resource;
+                auto htmlContent = lattice::File::getFileAsString(indexPath);
+                // Replace choc://app/ URLs with relative paths for cross-platform compatibility
+                // This ensures dynamic imports and resource references work with the base href
+                std::string::size_type pos = 0;
+                while ((pos = htmlContent.find("choc://app/", pos)) != std::string::npos)
+                {
+                    htmlContent.replace(pos, 10, ""); // Remove "choc://app/" (10 chars)
+                }
+                // Inject base tag to set origin to https://choc.localhost/
+                // This makes all relative URLs resolve to https://choc.localhost/... which
+                // our fetchResource callback normalizes back to filesystem paths
+                size_t headPos = htmlContent.find("<head>");
+                if (headPos != std::string::npos)
+                {
+                    htmlContent.insert(headPos + 6, "\n    <base href=\"https://choc.localhost/\">");
+                }
+                else
+                {
+                    // If no <head>, add at the beginning
+                    htmlContent = "<head><base href=\"https://choc.localhost/\"></head>" + htmlContent;
+                }
+                webview.setHTML(htmlContent);
+                lattice::logDebug << "Loaded HTML content with base tag and URL replacements";
             }
             else
             {
-                auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, path));
-                resource.data = std::vector<uint8_t>(res.begin(), res.end());
-                resource.mimeType = lattice::File::getMimeType(path);
-                return resource;
-                
+                lattice::logDebug << "index.html not found: " << indexPath;
             }
-            return choc::ui::WebView::Options::Resource{}; // Always return empty
+
+            processor.onWebViewIsReady();
         };
+        
+        options.fetchResource = [this](const std::string &path)
+        {
+            // Unified resource handler for all platforms. This callback serves all web resources
+            // from the plugin's filesystem, normalizing URLs from the webview's HTTPS origin
+            // back to filesystem paths. It handles both the new https://choc.localhost/ URLs
+            // (from the base href) and legacy choc://app/ URLs for compatibility.
+            choc::ui::WebView::Options::Resource resource;
+            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
+                                                                 : processor.getMountPoint();
+
+            lattice::logDebug << "=== FETCH RESOURCE REQUEST ===";
+            lattice::logDebug << "Requested path: '" << path << "'";
+
+            // Normalize the path by stripping the HTTPS prefix from our unified approach
+            std::string normalizedPath = path;
+            if (normalizedPath.find("https://choc.localhost/") == 0)
+            {
+                normalizedPath = normalizedPath.substr(23); // Remove "https://choc.localhost/"
+            }
+
+            lattice::logDebug << "Normalized path: '" << normalizedPath << "'";
+
+            // Handle directory requests by serving index.html
+            if (normalizedPath == "/" || normalizedPath.empty())
+            {
+                lattice::logDebug << "Serving index.html for root request";
+                std::string indexPath = lattice::File::joinPath(resourceDir, "index.html");
+                if (lattice::File::exists(indexPath))
+                {
+                    auto fileContent = lattice::File::getFileAsString(indexPath);
+                    resource.data = std::vector<uint8_t>(fileContent.begin(), fileContent.end());
+                    resource.mimeType = "text/html";
+                    lattice::logDebug << "SUCCESS: Loaded index.html (" << fileContent.size() << " bytes)";
+                    return resource;
+                }
+                else
+                {
+                    lattice::logDebug << "index.html not found at: " << indexPath;
+                    return choc::ui::WebView::Options::Resource{};
+                }
+            }
+
+            // Clean the path - remove leading slash if present
+            std::string cleanPath = normalizedPath;
+            if (!cleanPath.empty() && cleanPath[0] == '/')
+            {
+                cleanPath = cleanPath.substr(1);
+            }
+
+            // Use lattice::File::joinPath for cross-platform path handling
+            std::string fullPath = lattice::File::joinPath(resourceDir, cleanPath);
+
+            lattice::logDebug << "Resolved filesystem path: '" << fullPath << "'";
+
+            if (!lattice::File::exists(fullPath))
+            {
+                lattice::logDebug << "FILE NOT FOUND: " << fullPath;
+                return choc::ui::WebView::Options::Resource{};
+            }
+
+            try
+            {
+                auto fileContent = lattice::File::getFileAsString(fullPath);
+                resource.data = std::vector<uint8_t>(fileContent.begin(), fileContent.end());
+                resource.mimeType = lattice::File::getMimeType(cleanPath);
+
+                lattice::logDebug << "SUCCESS: Loaded " << cleanPath << " (" << fileContent.size() << " bytes)";
+                return resource;
+            }
+            catch (const std::exception &e)
+            {
+                lattice::logDebug << "ERROR reading file: " << e.what();
+                return choc::ui::WebView::Options::Resource{};
+            }
+        };        
         
         webview = std::make_unique<choc::ui::WebView>(options);
 
