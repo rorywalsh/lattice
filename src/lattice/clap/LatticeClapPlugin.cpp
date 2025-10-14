@@ -522,10 +522,11 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                               return {};
                           });
 
-            // Load HTML content directly instead of using navigate(), avoids platform-specific WebView 
-            // differences with custom URL schemes (choc://app/) and ensures consistent behavior across 
-            // macOS, Windows, and Linux. By setting a base href to https://choc.localhost/, all resource 
-            // requests appear as same-origin HTTPS requests that our fetchResource callback can handle uniformly.
+#if LATTICE_MACOS
+            // macOS: Use navigate with custom scheme
+            webview.navigate("choc://app/");
+#else
+            // Windows/Linux: Load HTML content directly with base href
             auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
                                                                  : processor.getMountPoint();
             std::string indexPath = lattice::File::joinPath(resourceDir, "index.html");
@@ -559,6 +560,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             {
                 lattice::logDebug << "index.html not found: " << indexPath;
             }
+#endif
 
             processor.onWebViewIsReady();
         };
@@ -566,9 +568,8 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
         options.fetchResource = [this](const std::string &path)
         {
             // Unified resource handler for all platforms. This callback serves all web resources
-            // from the plugin's filesystem, normalizing URLs from the webview's HTTPS origin
-            // back to filesystem paths. It handles both the new https://choc.localhost/ URLs
-            // (from the base href) and legacy choc://app/ URLs for compatibility.
+            // from the plugin's filesystem, normalizing URLs from the webview's custom scheme
+            // back to filesystem paths.
             choc::ui::WebView::Options::Resource resource;
             auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
                                                                  : processor.getMountPoint();
@@ -576,12 +577,21 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             lattice::logDebug << "=== FETCH RESOURCE REQUEST ===";
             lattice::logDebug << "Requested path: '" << path << "'";
 
-            // Normalize the path by stripping the HTTPS prefix from our unified approach
+            // Normalize the path based on platform
             std::string normalizedPath = path;
+#if LATTICE_MACOS
+            // macOS uses choc://app/ scheme, so paths come in as "/rotarySlider.js"
+            if (!normalizedPath.empty() && normalizedPath[0] == '/')
+            {
+                normalizedPath = normalizedPath.substr(1);
+            }
+#else
+            // Windows/Linux use https://choc.localhost/ scheme
             if (normalizedPath.find("https://choc.localhost/") == 0)
             {
                 normalizedPath = normalizedPath.substr(23); // Remove "https://choc.localhost/"
             }
+#endif
 
             lattice::logDebug << "Normalized path: '" << normalizedPath << "'";
 
@@ -637,7 +647,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                 lattice::logDebug << "ERROR reading file: " << e.what();
                 return choc::ui::WebView::Options::Resource{};
             }
-        };        
+        };
         
         webview = std::make_unique<choc::ui::WebView>(options);
 
