@@ -554,7 +554,6 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                     htmlContent = "<head><base href=\"https://choc.localhost/\"></head>" + htmlContent;
                 }
                 webview.setHTML(htmlContent);
-                lattice::logDebug << "Loaded HTML content with base tag and URL replacements";
             }
             else
             {
@@ -574,9 +573,6 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
                                                                  : processor.getMountPoint();
 
-            lattice::logDebug << "=== FETCH RESOURCE REQUEST ===";
-            lattice::logDebug << "Requested path: '" << path << "'";
-
             // Normalize the path based on platform
             std::string normalizedPath = path;
 #if LATTICE_MACOS
@@ -593,24 +589,19 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             }
 #endif
 
-            lattice::logDebug << "Normalized path: '" << normalizedPath << "'";
-
             // Handle directory requests by serving index.html
             if (normalizedPath == "/" || normalizedPath.empty())
             {
-                lattice::logDebug << "Serving index.html for root request";
                 std::string indexPath = lattice::File::joinPath(resourceDir, "index.html");
                 if (lattice::File::exists(indexPath))
                 {
                     auto fileContent = lattice::File::getFileAsString(indexPath);
                     resource.data = std::vector<uint8_t>(fileContent.begin(), fileContent.end());
                     resource.mimeType = "text/html";
-                    lattice::logDebug << "SUCCESS: Loaded index.html (" << fileContent.size() << " bytes)";
                     return resource;
                 }
                 else
                 {
-                    lattice::logDebug << "index.html not found at: " << indexPath;
                     return choc::ui::WebView::Options::Resource{};
                 }
             }
@@ -625,8 +616,6 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             // Use lattice::File::joinPath for cross-platform path handling
             std::string fullPath = lattice::File::joinPath(resourceDir, cleanPath);
 
-            lattice::logDebug << "Resolved filesystem path: '" << fullPath << "'";
-
             if (!lattice::File::exists(fullPath))
             {
                 lattice::logDebug << "FILE NOT FOUND: " << fullPath;
@@ -639,7 +628,6 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                 resource.data = std::vector<uint8_t>(fileContent.begin(), fileContent.end());
                 resource.mimeType = lattice::File::getMimeType(cleanPath);
 
-                lattice::logDebug << "SUCCESS: Loaded " << cleanPath << " (" << fileContent.size() << " bytes)";
                 return resource;
             }
             catch (const std::exception &e)
