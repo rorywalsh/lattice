@@ -51,7 +51,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
         parameterChanges.enqueue(param);
     };
 
-
+    processor.setWebViewHtml = [this](std::string htmlContent) {
+        if(webview)
+            webview->setHTML(htmlContent);
+    };
 
 #ifdef LATTICE_LINUX
     webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());

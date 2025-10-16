@@ -48,7 +48,13 @@ class Processor
 {
 public:
     // Constructor: Initialise plugins with max number of parameters
-    Processor() { parameters.reserve(64); }
+    Processor() { 
+        parameters.reserve(64);
+        // Initialize callbacks to prevent bad function call exceptions
+        setWebViewHtml = [](std::string) {};
+        sendWebViewMessage = [](nlohmann::json) {};
+        addParameterChange = [](lattice::ParameterChange) {};
+    }
     // Virtual destructor
     virtual ~Processor() = default;
     
@@ -122,8 +128,9 @@ public:
     virtual void loadPluginState(nlohmann::json /*state*/) {}
     
     // ============= Callback Functions =============
-    std::function<void(nlohmann::json)> sendWebViewMessage = nullptr;
-    std::function<void(lattice::ParameterChange)> addParameterChange = nullptr;
+    std::function<void(nlohmann::json)> sendWebViewMessage;
+    std::function<void(lattice::ParameterChange)> addParameterChange;
+    std::function<void(std::string)> setWebViewHtml;
    
 private:
     int editorWidth = 800;
