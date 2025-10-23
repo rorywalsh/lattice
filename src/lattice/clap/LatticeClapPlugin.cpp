@@ -283,9 +283,9 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
             {
                 nlohmann::json j, h;
                 j["command"] = "parameterChange";
-                h["paramIdx"] = p->param_id;
-                h["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
-                j["data"] = h;
+                j["paramIdx"] = p->param_id;
+                j["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
+
 
                 std::stringstream fullScript;
                 // Wrap call with function name
