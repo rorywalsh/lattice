@@ -520,9 +520,21 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             webview.bind("sendMessageFromUI",
                           [this](const choc::value::ValueView &args) -> choc::value::Value
                           {
-                              nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
-                              processor.onMessageFromWebView(j);
-                              return {};
+                              try {
+                                  std::string jsonString = choc::json::toString(args);
+                                  nlohmann::json j = nlohmann::json::parse(jsonString);
+                                  processor.onMessageFromWebView(j);
+                                  return {};
+                              }
+                              catch (const nlohmann::json::exception& e) {
+                                  std::cerr << "JSON parse error in sendMessageFromUI: " << e.what() << std::endl;
+                                  std::cerr << "Attempted to parse: " << choc::json::toString(args) << std::endl;
+                                  return {};
+                              }
+                              catch (const std::exception& e) {
+                                  std::cerr << "Error in sendMessageFromUI: " << e.what() << std::endl;
+                                  return {};
+                              }
                           });
 
 #if LATTICE_MACOS
