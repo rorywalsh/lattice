@@ -639,7 +639,7 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 
             try
             {
-                auto bytes = readFileBinary(fullPath);
+                auto bytes = lattice::File::getFileAsBinary(fullPath);
                 resource.data = std::move(bytes);
                 resource.mimeType = lattice::File::getMimeType(cleanPath);
 
