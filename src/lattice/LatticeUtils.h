@@ -293,6 +293,9 @@ class File
     // Loads the content of a JavaScript file as a string
     static std::string loadJSFile(const std::string &filePath);
 
+    // Reads the entire content of a file into binary vector
+    static std::vector<uint8_t> getFileAsBinary(const std::string& filePath);
+
     // Reads the entire content of a file into a string
     static std::string getFileAsString(const std::string& filePath);
 
