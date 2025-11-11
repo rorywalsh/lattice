@@ -639,8 +639,8 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
 
             try
             {
-                auto fileContent = lattice::File::getFileAsString(fullPath);
-                resource.data = std::vector<uint8_t>(fileContent.begin(), fileContent.end());
+                auto bytes = readFileBinary(fullPath);
+                resource.data = std::move(bytes);
                 resource.mimeType = lattice::File::getMimeType(cleanPath);
 
                 return resource;
