@@ -294,6 +294,24 @@ std::string File::getFileAsString(const std::string& filePath)
     return buffer.str();
 }
 
+std::vector<uint8_t> File::getFileAsBinary(const std::string& path)
+{
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    if (!in)
+        throw std::runtime_error("Failed to open file: " + path);
+
+    std::streamsize size = in.tellg();
+    if (size < 0)
+        return {}; // empty file or error
+
+    in.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> buffer(static_cast<size_t>(size));
+    if (size > 0 && !in.read(reinterpret_cast<char*>(buffer.data()), size))
+        throw std::runtime_error("Failed to read file: " + path);
+
+    return buffer;
+}
 std::vector<std::string> File::getFilesOfType(const std::string &dirPath, const std::string &fileTypes)
 {
     std::vector<std::string> result;
