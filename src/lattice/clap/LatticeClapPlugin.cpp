@@ -48,13 +48,13 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 
 
     processor.addParameterChange = [this](lattice::ParameterChange param) {
-        parameterChanges.enqueue(param);
+        // Don't enqueue if we're shutting down to prevent race condition
+        if (!isShuttingDown.load(std::memory_order_acquire)) {
+            parameterChanges.enqueue(param);
+        }
     };
 
-    processor.setWebViewHtml = [this](std::string htmlContent) {
-        if(webview)
-            webview->setHTML(htmlContent);
-    };
+
 
 #ifdef LATTICE_LINUX
     webviewProcessPath = createTempFile(std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX").c_str());
@@ -63,6 +63,19 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host* host, lattice::Processor& 
 
 LatticeClapPlugin::~LatticeClapPlugin()
 {
+    // Set shutdown flag to prevent queue access from audio thread
+    isShuttingDown.store(true, std::memory_order_release);
+    
+    // Give audio thread time to see the flag and exit any queue operations
+    // Increased delay to ensure audio thread has exited any in-progress operations
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    
+    // Drain any remaining items from the queue to prevent assertion on destruction
+    lattice::ParameterChange dummy;
+    while (parameterChanges.try_dequeue(dummy)) {
+        // Just drain, don't process
+    }
+    
 #ifdef LATTICE_LINUX
     // Terminate the webview process
     unlink(std::string(webviewProcessPath).c_str());
@@ -283,9 +296,9 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
             {
                 nlohmann::json j, h;
                 j["command"] = "parameterChange";
-                j["paramIdx"] = p->param_id;
-                j["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
-
+                h["paramIdx"] = p->param_id;
+                h["value"] = processor.getParameter(p->param_id).fromNormalised(p->value);
+                j["data"] = h;
 
                 std::stringstream fullScript;
                 // Wrap call with function name
@@ -337,26 +350,29 @@ clap_process_status LatticeClapPlugin::process(const clap_process* process) noex
         }
     }
 
-    lattice::ParameterChange change;
-    while (parameterChanges.try_dequeue(change)) {
-        switch (change.type) {
-        case lattice::ParamChangeType::GestureBegin:
-            emitGestureBegin(change.paramId, process->out_events);
-            break;
+    // Check shutdown flag before accessing queue to prevent race condition during destruction
+    if (!isShuttingDown.load(std::memory_order_acquire)) {
+        lattice::ParameterChange change;
+        while (parameterChanges.try_dequeue(change)) {
+            switch (change.type) {
+            case lattice::ParamChangeType::GestureBegin:
+                emitGestureBegin(change.paramId, process->out_events);
+                break;
 
-        case lattice::ParamChangeType::Value:
-            emitValue(change.paramId, change.value, process->out_events);
-            break;
+            case lattice::ParamChangeType::Value:
+                emitValue(change.paramId, change.value, process->out_events);
+                break;
 
-        case lattice::ParamChangeType::GestureEnd:
-            emitGestureEnd(change.paramId, process->out_events);
-            break;
+            case lattice::ParamChangeType::GestureEnd:
+                emitGestureEnd(change.paramId, process->out_events);
+                break;
 
-        case lattice::ParamChangeType::Complete:
-            emitGestureBegin(change.paramId, process->out_events);
-            emitValue(change.paramId, change.value, process->out_events);
-            emitGestureEnd(change.paramId, process->out_events);
-            break;
+            case lattice::ParamChangeType::Complete:
+                emitGestureBegin(change.paramId, process->out_events);
+                emitValue(change.paramId, change.value, process->out_events);
+                emitGestureEnd(change.paramId, process->out_events);
+                break;
+            }
         }
     }
     return CLAP_PROCESS_CONTINUE;
@@ -520,143 +536,36 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
             webview.bind("sendMessageFromUI",
                           [this](const choc::value::ValueView &args) -> choc::value::Value
                           {
-                              try {
-                                  std::string jsonString = choc::json::toString(args);
-                                  nlohmann::json j = nlohmann::json::parse(jsonString);
-                                  processor.onMessageFromWebView(j);
-                                  return {};
-                              }
-                              catch (const nlohmann::json::exception& e) {
-                                  std::cerr << "JSON parse error in sendMessageFromUI: " << e.what() << std::endl;
-                                  std::cerr << "Attempted to parse: " << choc::json::toString(args) << std::endl;
-                                  return {};
-                              }
-                              catch (const std::exception& e) {
-                                  std::cerr << "Error in sendMessageFromUI: " << e.what() << std::endl;
-                                  return {};
-                              }
+                              nlohmann::json j = nlohmann::json::parse(choc::json::toString(args));
+                              processor.onMessageFromWebView(j);
+                              return {};
                           });
-
-#if LATTICE_MACOS
-            // macOS: Use navigate with custom scheme
             webview.navigate("choc://app/");
-#else
-            // Windows/Linux: Load HTML content directly with base href
-            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
-                                                                 : processor.getMountPoint();
-            std::string indexPath = lattice::File::joinPath(resourceDir, "index.html");
-            if (lattice::File::exists(indexPath))
-            {
-                auto htmlContent = lattice::File::getFileAsString(indexPath);
-                // Replace choc://app/ URLs with relative paths for cross-platform compatibility
-                // This ensures dynamic imports and resource references work with the base href
-                std::string::size_type pos = 0;
-                while ((pos = htmlContent.find("choc://app/", pos)) != std::string::npos)
-                {
-                    htmlContent.replace(pos, 10, ""); // Remove "choc://app/" (10 chars)
-                }
-                // Inject base tag to set origin to https://choc.localhost/
-                // This makes all relative URLs resolve to https://choc.localhost/... which
-                // our fetchResource callback normalizes back to filesystem paths
-                size_t headPos = htmlContent.find("<head>");
-                if (headPos != std::string::npos)
-                {
-                    htmlContent.insert(headPos + 6, "\n    <base href=\"https://choc.localhost/\">");
-                }
-                else
-                {
-                    // If no <head>, add at the beginning
-                    htmlContent = "<head><base href=\"https://choc.localhost/\"></head>" + htmlContent;
-                }
-                webview.setHTML(htmlContent);
-            }
-            else
-            {
-                lattice::logDebug << "index.html not found: " << indexPath;
-            }
-#endif
-
             processor.onWebViewIsReady();
         };
         
-        options.fetchResource = [this](const std::string &path)
-        {
-            // Unified resource handler for all platforms. This callback serves all web resources
-            // from the plugin's filesystem, normalizing URLs from the webview's custom scheme
-            // back to filesystem paths.
+        options.fetchResource = [this](const std::string& path) {
             choc::ui::WebView::Options::Resource resource;
-            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle()
-                                                                 : processor.getMountPoint();
+            auto resourceDir = processor.getMountPoint().empty() ? lattice::File::getResourceDirFromBundle() : processor.getMountPoint();
+            if(!lattice::File::exists(lattice::File::joinPath(resourceDir, path)))
+                lattice::logDebug << "Res file doesn't exist at: " << lattice::File::joinPath(resourceDir, path);
 
-            // Normalize the path based on platform
-            std::string normalizedPath = path;
-#if LATTICE_MACOS
-            // macOS uses choc://app/ scheme, so paths come in as "/rotarySlider.js"
-            if (!normalizedPath.empty() && normalizedPath[0] == '/')
+            if (path == "/" || path == "/index.html")
             {
-                normalizedPath = normalizedPath.substr(1);
-            }
-#else
-            // Windows/Linux use https://choc.localhost/ scheme
-            if (normalizedPath.find("https://choc.localhost/") == 0)
-            {
-                normalizedPath = normalizedPath.substr(23); // Remove "https://choc.localhost/"
-            }
-#endif
-
-            // Handle directory requests by serving index.html
-            if (normalizedPath == "/" || normalizedPath.empty())
-            {
-                std::string indexPath = lattice::File::joinPath(resourceDir, "index.html");
-                if (lattice::File::exists(indexPath))
-                {
-                    auto fileContent = lattice::File::getFileAsString(indexPath);
-                    resource.data = std::vector<uint8_t>(fileContent.begin(), fileContent.end());
-                    resource.mimeType = "text/html";
-                    return resource;
-                }
-                else
-                {
-                    return choc::ui::WebView::Options::Resource{};
-                }
-            }
-
-            // Clean the path - remove leading slash if present
-            std::string cleanPath = normalizedPath;
-            if (!cleanPath.empty() && cleanPath[0] == '/')
-            {
-                cleanPath = cleanPath.substr(1);
-            }
-
-            // Strip query parameters
-            size_t queryPos = cleanPath.find('?');
-            if (queryPos != std::string::npos)
-            {
-                cleanPath = cleanPath.substr(0, queryPos);
-            }
-
-            // Use lattice::File::joinPath for cross-platform path handling
-            std::string fullPath = lattice::File::joinPath(resourceDir, cleanPath);
-
-            if (!lattice::File::exists(fullPath))
-            {
-                lattice::logDebug << "FILE NOT FOUND: " << fullPath;
-                return choc::ui::WebView::Options::Resource{};
-            }
-
-            try
-            {
-                auto bytes = lattice::File::getFileAsBinary(fullPath);
-                resource.data = std::move(bytes);
-                resource.mimeType = lattice::File::getMimeType(cleanPath);
-
+                auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, "index.html"));
+                resource.data = std::vector<uint8_t>(res.begin(), res.end());
+                resource.mimeType = "text/html";
                 return resource;
             }
-            catch (const std::exception &e)
+            else
             {
-                lattice::logDebug << "ERROR reading file: " << e.what();
-                return choc::ui::WebView::Options::Resource{};
+                auto res = lattice::File::getFileAsString(lattice::File::joinPath(resourceDir, path));
+                resource.data = std::vector<uint8_t>(res.begin(), res.end());
+                resource.mimeType = lattice::File::getMimeType(path);
+                return resource;
+                
             }
+            return choc::ui::WebView::Options::Resource{}; // Always return empty
         };
         
         webview = std::make_unique<choc::ui::WebView>(options);
