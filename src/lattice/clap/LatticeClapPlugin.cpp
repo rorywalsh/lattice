@@ -55,6 +55,8 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 #else
     if (webview) {
       webview->setHTML(html);
+    } else {
+      lattice::logDebug << "setWebViewHtml called but webview is null!";
     }
 #endif
   };
@@ -518,18 +520,28 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
     choc::ui::WebView::Options options;
     options.enableDebugMode = true;
     options.acceptsFirstMouseClick = true;
-    options.webviewIsReady = [&](choc::ui::WebView &webview) {
+    options.webviewIsReady = [&](choc::ui::WebView &wv) {
       // Add JavaScript interface for parameter control
-      webview.bind(
-          "sendMessageFromUI",
-          [this](const choc::value::ValueView &args) -> choc::value::Value {
-            nlohmann::json j =
-                nlohmann::json::parse(choc::json::toString(args));
-            processor.onMessageFromWebView(j);
-            return {};
-          });
-      webview.navigate("choc://app/");
+      wv.bind("sendMessageFromUI",
+              [this](const choc::value::ValueView &args) -> choc::value::Value {
+                nlohmann::json j =
+                    nlohmann::json::parse(choc::json::toString(args));
+                processor.onMessageFromWebView(j);
+                return {};
+              });
+
+      // Temporary override to handle synchronous calls before this->webview is
+      // assigned
+      auto originalSetHtml = processor.setWebViewHtml;
+      processor.setWebViewHtml = [&](const std::string &html) {
+        wv.setHTML(html);
+      };
+
+      wv.navigate("choc://app/");
       processor.onWebViewIsReady();
+
+      // Restore original handler that uses this->webview
+      processor.setWebViewHtml = originalSetHtml;
     };
 
     options.fetchResource = [this](const std::string &path) {
