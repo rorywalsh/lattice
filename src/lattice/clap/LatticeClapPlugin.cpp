@@ -628,6 +628,13 @@ bool LatticeClapPlugin::guiCreate(const char* /*api*/, bool /*isFloating*/) noex
                 cleanPath = cleanPath.substr(1);
             }
 
+            // Strip query parameters
+            size_t queryPos = cleanPath.find('?');
+            if (queryPos != std::string::npos)
+            {
+                cleanPath = cleanPath.substr(0, queryPos);
+            }
+
             // Use lattice::File::joinPath for cross-platform path handling
             std::string fullPath = lattice::File::joinPath(resourceDir, cleanPath);
 
