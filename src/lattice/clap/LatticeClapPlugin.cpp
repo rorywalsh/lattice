@@ -49,6 +49,16 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 #endif
   };
 
+  processor.setWebViewHtml = [this](const std::string &html) {
+#ifdef LATTICE_LINUX
+
+#else
+    if (webview) {
+      webview->setHTML(html);
+    }
+#endif
+  };
+
   processor.addParameterChange = [this](lattice::ParameterChange param) {
     // Don't enqueue if we're shutting down to prevent race condition
     if (!isShuttingDown.load(std::memory_order_acquire)) {
