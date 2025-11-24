@@ -128,6 +128,7 @@ private:
 
     moodycamel::ReaderWriterQueue<std::string> webviewMessageQueue;
     bool isTimerRunning = false;
+    std::atomic<bool> isShuttingDown{false};
 };
 
 class LatticeProcessorPluginFactory {
