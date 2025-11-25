@@ -749,10 +749,62 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
 bool LatticeClapPlugin::timerCallback() {
   std::string script;
 
+  // Deduplicate messages by extracting paramIdx from parameterChange messages
+  // This prevents lag from processing redundant updates during rapid parameter
+  // changes
+  std::unordered_map<int, std::string> latestParamChanges;
+  std::vector<std::string> otherMessages;
+
   while (webviewMessageQueue.try_dequeue(script)) {
+    // Try to parse as JSON to check if it's a parameterChange message
+    try {
+      // Extract the JSON part from the function call: functionName({"command":
+      // ...})
+      size_t openParen = script.find('(');
+      size_t closeParen = script.rfind(')');
+
+      if (openParen != std::string::npos && closeParen != std::string::npos &&
+          closeParen > openParen) {
+        std::string jsonPart =
+            script.substr(openParen + 1, closeParen - openParen - 1);
+        auto j = nlohmann::json::parse(jsonPart);
+
+        // Check if this is a parameterChange message
+        if (j.contains("command") && j["command"] == "parameterChange" &&
+            j.contains("data") && j["data"].contains("paramIdx")) {
+          int paramIdx = j["data"]["paramIdx"];
+          // Keep only the latest message for each paramIdx
+          latestParamChanges[paramIdx] = script;
+        } else {
+          // Not a parameterChange, process immediately
+          otherMessages.push_back(script);
+        }
+      } else {
+        // Can't parse, process immediately
+        otherMessages.push_back(script);
+      }
+    } catch (...) {
+      // Parse failed, process immediately
+      otherMessages.push_back(script);
+    }
+  }
+
+  // Process non-parameterChange messages first
+  for (const auto &msg : otherMessages) {
     webview->evaluateJavascript(
-        script, [](const std::string &error,
-                   const choc::value::ValueView & /*result*/) {
+        msg, [](const std::string &error,
+                const choc::value::ValueView & /*result*/) {
+          if (!error.empty()) {
+            lattice::logDebug << "JavaScript Error: " << error;
+          }
+        });
+  }
+
+  // Then process only the latest parameterChange for each parameter
+  for (const auto &[paramIdx, msg] : latestParamChanges) {
+    webview->evaluateJavascript(
+        msg, [](const std::string &error,
+                const choc::value::ValueView & /*result*/) {
           if (!error.empty()) {
             lattice::logDebug << "JavaScript Error: " << error;
           }
