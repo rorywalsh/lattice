@@ -448,12 +448,32 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId,
 }
 
 void LatticeClapPlugin::startTimer() {
-  isTimerRunning = true;
-  timer =
-      choc::messageloop::Timer(16, [this]() { return this->timerCallback(); });
+  if (auto *host = _host.host()) {
+    if (auto *timerSupport = (const clap_host_timer_support *)host->get_extension(
+            host, CLAP_EXT_TIMER_SUPPORT)) {
+      // Request timer callback every 16ms (~60fps)
+      if (timerSupport->register_timer(host, 16, &timerId)) {
+        lattice::logDebug << "Timer registered with ID: " << timerId;
+      } else {
+        lattice::logDebug << "Failed to register timer";
+      }
+    } else {
+      lattice::logDebug << "Host does not support timer extension";
+    }
+  }
 }
 
-void LatticeClapPlugin::stopTimer() { isTimerRunning = false; }
+void LatticeClapPlugin::stopTimer() {
+  if (timerId != CLAP_INVALID_ID) {
+    if (auto *host = _host.host()) {
+      if (auto *timerSupport = (const clap_host_timer_support *)host->get_extension(
+              host, CLAP_EXT_TIMER_SUPPORT)) {
+        timerSupport->unregister_timer(host, timerId);
+        timerId = CLAP_INVALID_ID;
+      }
+    }
+  }
+}
 
 //========================================================================================
 // Temporary file creation for Linux
@@ -746,7 +766,12 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
   }
 }
 
-bool LatticeClapPlugin::timerCallback() {
+void LatticeClapPlugin::onTimer(clap_id /*timerId*/) noexcept {
+  // This is called on the main thread by the host
+  processWebviewMessages();
+}
+
+void LatticeClapPlugin::processWebviewMessages() {
   std::string script;
 
   // Deduplicate messages by extracting paramIdx from parameterChange messages
@@ -810,6 +835,4 @@ bool LatticeClapPlugin::timerCallback() {
           }
         });
   }
-
-  return isTimerRunning;
 }

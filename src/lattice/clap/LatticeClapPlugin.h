@@ -7,6 +7,7 @@
 #include "choc/platform/choc_DisableAllWarnings.h"
 #include <clap/helpers/host-proxy.hxx>
 #include <clap/helpers/plugin.hxx>
+#include <clap/ext/timer-support.h>
 
 #include <readerwriterqueue.h>
 #include "choc/platform/choc_ReenableAllWarnings.h"
@@ -17,7 +18,6 @@
 #include "text/choc_Files.h"
 #include "../LatticeMemoryQueue.h"
 #endif
-#include "choc/gui/choc_MessageLoop.h"
 
 
 
@@ -94,10 +94,14 @@ public:
     bool guiHide() noexcept override;
     bool guiSetParent(const clap_window* window) noexcept override;
 
+    // Timer support extension
+    bool implementsTimerSupport() const noexcept override { return true; }
+    void onTimer(clap_id timerId) noexcept override;
+
     moodycamel::ReaderWriterQueue<lattice::ParameterChange> parameterChanges;
 private:
-    choc::messageloop::Timer timer;
     lattice::Processor& processor; // reference to processor
+    clap_id timerId = CLAP_INVALID_ID;
     std::string htmlMntPoint = {};
 
     // Add GUI members
@@ -123,11 +127,9 @@ private:
 
     void startTimer();
     void stopTimer();
-    bool timerCallback();
-
+    void processWebviewMessages();
 
     moodycamel::ReaderWriterQueue<std::string> webviewMessageQueue;
-    bool isTimerRunning = false;
     std::atomic<bool> isShuttingDown{false};
 };
 
