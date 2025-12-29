@@ -41,7 +41,6 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
       std::stringstream fullScript;
       // Wrap call with function name - convert JSON to string
       fullScript << functionName << "(" << message.dump() << ")";
-      lattice::logDebug << "Enqueuing webview message: " << fullScript.str().substr(0, 100);
       webviewMessageQueue.enqueue(fullScript.str());
     } else {
       lattice::logDebug
@@ -841,3 +840,4 @@ void LatticeClapPlugin::processWebviewMessages() {
         });
   }
 }
+
