@@ -571,34 +571,39 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
       auto resourceDir = processor.getMountPoint().empty()
                              ? lattice::File::getResourceDirFromBundle()
                              : processor.getMountPoint();
-      if (!lattice::File::exists(lattice::File::joinPath(resourceDir, path)))
-
+      
       if (path == "/" || path == "/index.html") {
         auto res = lattice::File::getFileAsString(
             lattice::File::joinPath(resourceDir, "index.html"));
         resource.data = std::vector<uint8_t>(res.begin(), res.end());
         resource.mimeType = "text/html";
         return resource;
-      } else {
-        // Clean the path - remove leading slash if present
-        std::string cleanPath = path;
-        if (!cleanPath.empty() && cleanPath[0] == '/') {
-          cleanPath = cleanPath.substr(1);
-        }
-
-        // Strip query parameters (e.g., cache-busting timestamps)
-        size_t queryPos = cleanPath.find('?');
-        if (queryPos != std::string::npos) {
-          cleanPath = cleanPath.substr(0, queryPos);
-        }
-
-        auto res = lattice::File::getFileAsString(
-            lattice::File::joinPath(resourceDir, cleanPath));
-        resource.data = std::vector<uint8_t>(res.begin(), res.end());
-        resource.mimeType = lattice::File::getMimeType(cleanPath);
-        return resource;
       }
-      return choc::ui::WebView::Options::Resource{}; // Always return empty
+      
+      // Clean the path - remove leading slash if present
+      std::string cleanPath = path;
+      if (!cleanPath.empty() && cleanPath[0] == '/') {
+        cleanPath = cleanPath.substr(1);
+      }
+
+      // Strip query parameters (e.g., cache-busting timestamps)
+      size_t queryPos = cleanPath.find('?');
+      if (queryPos != std::string::npos) {
+        cleanPath = cleanPath.substr(0, queryPos);
+      }
+
+      auto fullPath = lattice::File::joinPath(resourceDir, cleanPath);
+      
+      // Check if file exists before trying to load it
+      if (!lattice::File::exists(fullPath)) {
+        lattice::logDebug << "Resource not found: " << fullPath;
+        return choc::ui::WebView::Options::Resource{}; // Return empty for missing files
+      }
+
+      auto res = lattice::File::getFileAsString(fullPath);
+      resource.data = std::vector<uint8_t>(res.begin(), res.end());
+      resource.mimeType = lattice::File::getMimeType(cleanPath);
+      return resource;
     };
 
     webview = std::make_unique<choc::ui::WebView>(options);
