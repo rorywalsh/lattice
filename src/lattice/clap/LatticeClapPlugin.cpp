@@ -33,14 +33,15 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 
   auto functionName = processor.getWebViewSendFunctionName();
   processor.sendWebViewMessage = [this,
-                                  functionName](const std::string &script) {
+                                  functionName](const nlohmann::json &message) {
 #ifdef LATTICE_LINUX
 
 #else
     if (webview) {
       std::stringstream fullScript;
-      // Wrap call with function name
-      fullScript << functionName << "(" << script << ")";
+      // Wrap call with function name - convert JSON to string
+      fullScript << functionName << "(" << message.dump() << ")";
+      lattice::logDebug << "Enqueuing webview message: " << fullScript.str().substr(0, 100);
       webviewMessageQueue.enqueue(fullScript.str());
     } else {
       lattice::logDebug
@@ -547,7 +548,8 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                 nlohmann::json j =
                     nlohmann::json::parse(choc::json::toString(args));
                 processor.onMessageFromWebView(j);
-                return {};
+                // Return a success value to resolve the promise in JavaScript
+                return choc::value::Value(true);
               });
 
       // Temporary override to handle synchronous calls before this->webview is
@@ -570,8 +572,6 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                              ? lattice::File::getResourceDirFromBundle()
                              : processor.getMountPoint();
       if (!lattice::File::exists(lattice::File::joinPath(resourceDir, path)))
-        lattice::logDebug << "Res file doesn't exist at: "
-                          << lattice::File::joinPath(resourceDir, path);
 
       if (path == "/" || path == "/index.html") {
         auto res = lattice::File::getFileAsString(

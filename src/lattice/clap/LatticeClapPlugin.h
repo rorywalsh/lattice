@@ -40,7 +40,6 @@ class LatticeClapPlugin : public clap::helpers::Plugin<clap::helpers::Misbehavio
 public:
     LatticeClapPlugin(const clap_host* host, lattice::Processor& processor);
     ~LatticeClapPlugin() override;
-
     
     bool audioPortsInfo(uint32_t index, bool isInput, clap_audio_port_info* info) const noexcept override;
     bool paramsInfo(uint32_t paramIndex, clap_param_info* info) const noexcept override;
@@ -49,8 +48,7 @@ public:
     uint32_t paramsCount() const noexcept override;
     uint32_t audioPortsCount(bool /*isInput*/) const noexcept override;
 
-    uint32_t notePortsCount(bool isInput) const noexcept override 
-    {
+    uint32_t notePortsCount(bool isInput) const noexcept override {    
         return isInput ? 1 : 0;
     }
     
