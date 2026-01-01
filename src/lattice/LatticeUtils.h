@@ -315,6 +315,9 @@ class File
     // Retrieves a specific property from the settings file by section and key
     static std::string getSettingsProperty(const std::string &section, const std::string &key);
 
+    // Return special file locations
+    static std::string getSpecialLocation(const std::string &locationType);
+    
     static bool isWindowsStandalone()
     {
         std::string path = File::getBinaryFileAndPath();

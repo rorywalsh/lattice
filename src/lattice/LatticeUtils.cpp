@@ -25,6 +25,16 @@
 
 #include "LatticeUtils.h"
 
+#if defined(_WIN32)
+#include <windows.h>
+#include <shlobj.h>
+#endif
+
+#if defined(__linux__)
+#include <pwd.h>
+#include <unistd.h>
+#endif
+
 namespace lattice {
 
 void setTimeout(std::function<void()> callback, int delayMilliseconds) {
@@ -401,6 +411,170 @@ std::vector<std::string> File::getFilesOfType(
               });
 
     return result;
+}
+
+std::string getSpecialLocation(const std::string &locationType)
+{
+    if (locationType == "USER_HOME_DIRECTORY") {
+#if defined(_WIN32)
+        const char* homeDrive = std::getenv("HOMEDRIVE");
+        const char* homePath = std::getenv("HOMEPATH");
+        if (homeDrive && homePath) {
+            return std::string(homeDrive) + homePath;
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        if (home) return std::string(home);
+        struct passwd* pw = getpwuid(getuid());
+        return pw ? std::string(pw->pw_dir) : "";
+#endif
+    }
+    else if (locationType == "USER_DOCUMENTS_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Documents" : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) : ""; // Linux doesn't have a standard Documents folder
+#endif
+    }
+    else if (locationType == "USER_DESKTOP_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_DESKTOPDIRECTORY, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Desktop" : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Desktop" : "";
+#endif
+    }
+    else if (locationType == "USER_MUSIC_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_MYMUSIC, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Music" : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Music" : "";
+#endif
+    }
+    else if (locationType == "USER_MOVIES_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_MYVIDEO, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Movies" : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Videos" : "";
+#endif
+    }
+    else if (locationType == "USER_PICTURES_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_MYPICTURES, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Pictures" : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Pictures" : "";
+#endif
+    }
+    else if (locationType == "USER_APPLICATION_DATA_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/Library/Application Support" : "";
+#elif defined(__linux__)
+        const char* home = std::getenv("HOME");
+        return home ? std::string(home) + "/.config" : "";
+#endif
+    }
+    else if (locationType == "COMMON_APPLICATION_DATA_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        return "/Library/Application Support";
+#elif defined(__linux__)
+        return "/opt";
+#endif
+    }
+    else if (locationType == "COMMON_DOCUMENTS_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_COMMON_DOCUMENTS, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        return "/Users/Shared";
+#elif defined(__linux__)
+        return "/usr/share"; // Linux doesn't have a standard shared documents folder
+#endif
+    }
+    else if (locationType == "WINDOWS_SYSTEM_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (GetSystemDirectoryA(path, MAX_PATH) > 0) {
+            return std::string(path);
+        }
+        return "";
+#else
+        return ""; // Not applicable on non-Windows platforms
+#endif
+    }
+    else if (locationType == "GLOBAL_APPLICATIONS_DIRECTORY") {
+#if defined(_WIN32)
+        char path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PROGRAM_FILES, NULL, 0, path))) {
+            return std::string(path);
+        }
+        return "";
+#elif defined(__APPLE__)
+        return "/Applications";
+#elif defined(__linux__)
+        return "/usr";
+#endif
+    }
+
+    return ""; // Unknown location type
 }
 
 }
