@@ -312,81 +312,92 @@ std::vector<uint8_t> File::getFileAsBinary(const std::string& path)
 
     return buffer;
 }
-std::vector<std::string> File::getFilesOfType(const std::string &dirPath, const std::string &fileTypes)
+
+std::vector<std::string> File::getFilesOfType(
+    const std::string &dirPath,
+    const std::string &fileTypes)
 {
+    namespace fs = std::filesystem;
+
     std::vector<std::string> result;
 
-    // Resolve the absolute path based on the current CSD file location
-    std::filesystem::path searchPath = lattice::File::formatPath(dirPath);
+    // Resolve the absolute path
+    fs::path searchPath = lattice::File::formatPath(dirPath);
 
     if (searchPath.is_relative())
     {
-        std::filesystem::path dirPath = std::filesystem::path(lattice::File::getBinaryFileAndPath()).parent_path();
-        searchPath = dirPath / searchPath;
+        fs::path baseDir =
+            fs::path(lattice::File::getBinaryFileAndPath()).parent_path();
+        searchPath = baseDir / searchPath;
     }
 
-    // Normalize the path to remove any redundant elements
-    searchPath = std::filesystem::canonical(searchPath);
+    searchPath = fs::canonical(searchPath);
 
-    // Split the fileTypes string into individual patterns
-    std::vector<std::string> patterns;
+    // Parse extensions
+    std::unordered_set<std::string> extensions;
     std::stringstream ss(fileTypes);
-    std::string pattern;
+    std::string ext;
 
-    while (std::getline(ss, pattern, ';'))
+    auto toLower = [](std::string s)
     {
-        patterns.push_back(pattern);
-    }
+        std::transform(s.begin(), s.end(), s.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        return s;
+    };
 
-    // Iterate over the directory and match the patterns
-    for (const auto &entry : std::filesystem::recursive_directory_iterator(searchPath))
+    while (std::getline(ss, ext, ';'))
     {
-        if (entry.is_regular_file())
+        if (!ext.empty())
         {
-            std::string filePath = entry.path().string();
-            for (const auto &p : patterns)
-            {
-                if (std::filesystem::path(filePath).filename().string().find(p.substr(1)) != std::string::npos)
-                {
-                    result.push_back(filePath);
-                    break;
-                }
-            }
+            extensions.insert(toLower(ext));
         }
     }
 
+    // Iterate and match extensions
+    for (const auto &entry : fs::recursive_directory_iterator(searchPath))
+    {
+        if (!entry.is_regular_file())
+            continue;
+
+        std::string fileExt = toLower(entry.path().extension().string());
+
+        if (extensions.contains(fileExt))
+        {
+            result.push_back(entry.path().string());
+        }
+    }
+
+    // Sort numerically when possible
     std::sort(result.begin(), result.end(),
               [](const std::string &a, const std::string &b)
               {
-                  // Extract filenames without extensions
-                  std::string fileNameA = std::filesystem::path(a).filename().stem().string();
-                  std::string fileNameB = std::filesystem::path(b).filename().stem().string();
+                  fs::path pa(a), pb(b);
 
-                  // Convert filenames to integers if possible
-                  auto convertToInt = [](const std::string &s) -> int
+                  std::string sa = pa.stem().string();
+                  std::string sb = pb.stem().string();
+
+                  auto toInt = [](const std::string &s) -> std::optional<int>
                   {
                       try
                       {
-                          return std::stoi(s);
+                          size_t idx;
+                          int val = std::stoi(s, &idx);
+                          return (idx == s.size()) ? std::optional<int>(val)
+                                                   : std::nullopt;
                       }
                       catch (...)
                       {
-                          return 0; // Return 0 if conversion fails
+                          return std::nullopt;
                       }
                   };
 
-                  int numA = convertToInt(fileNameA);
-                  int numB = convertToInt(fileNameB);
+                  auto ia = toInt(sa);
+                  auto ib = toInt(sb);
 
-                  // Compare numeric parts if both filenames are numeric, otherwise use lexicographical comparison
-                  if (numA != 0 && numB != 0)
-                  {
-                      return numA < numB;
-                  }
-                  else
-                  {
-                      return fileNameA < fileNameB;
-                  }
+                  if (ia && ib)
+                      return *ia < *ib;
+
+                  return sa < sb;
               });
 
     return result;

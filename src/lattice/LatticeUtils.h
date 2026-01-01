@@ -38,6 +38,7 @@
 #include <atomic>
 #include <cstring>
 #include <filesystem>
+#include <unordered_set>
 #include <fstream>
 #include <iostream>
 #include <optional>
