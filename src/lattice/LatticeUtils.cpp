@@ -413,7 +413,7 @@ std::vector<std::string> File::getFilesOfType(
     return result;
 }
 
-std::string getSpecialLocation(const std::string &locationType)
+std::string File::getSpecialLocation(const std::string &locationType)
 {
     if (locationType == "USER_HOME_DIRECTORY") {
 #if defined(_WIN32)
