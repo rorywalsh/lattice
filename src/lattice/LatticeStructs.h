@@ -208,4 +208,23 @@ namespace lattice {
         uint32_t time = 0;
     };
 
+    // Represents host transport/playhead information (tempo, position, time signature)
+    struct TransportInfo {
+        double songPosBeats = 0.0;       ///< Current position in beats
+        double songPosSeconds = 0.0;     ///< Current position in seconds
+        double tempo = 120.0;             ///< Current tempo in BPM
+        double tempoInc = 0.0;            ///< Tempo increment/change
+        double loopStartBeats = 0.0;     ///< Loop start position in beats
+        double loopEndBeats = 0.0;       ///< Loop end position in beats
+        double loopStartSeconds = 0.0;   ///< Loop start position in seconds
+        double loopEndSeconds = 0.0;     ///< Loop end position in seconds
+        int32_t timeSigNum = 4;          ///< Time signature numerator
+        int32_t timeSigDenom = 4;        ///< Time signature denominator
+        double barStart = 0.0;            ///< Bar start position in beats
+        int64_t barNumber = 0;           ///< Current bar number
+        bool isPlaying = false;          ///< Is transport playing
+        bool isRecording = false;        ///< Is transport recording
+        bool isLoopActive = false;       ///< Is loop active
+    };
+
 } // namespace lattice

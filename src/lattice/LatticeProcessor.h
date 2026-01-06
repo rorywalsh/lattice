@@ -123,6 +123,10 @@ public:
     void addNoteEvent(const lattice::NoteEvent& noteEvent) { noteEvents.push_back(noteEvent); }
     std::deque<NoteEvent>& getNoteEvents() { return noteEvents; }
     
+    // ============= Transport Info =================
+    const lattice::TransportInfo& getTransportInfo() const { return transportInfo; }
+    void setTransportInfo(const lattice::TransportInfo& info) { transportInfo = info; }
+    
     // ============= State Management ============= 
     virtual nlohmann::json savePluginState() { return {}; }
     virtual void loadPluginState(nlohmann::json /*state*/) {}
@@ -139,6 +143,7 @@ private:
     std::unordered_map<std::string, Parameter*> parameterMap;
     std::deque<NoteEvent> noteEvents;
     lattice::ChannelConfig channelConfig;
+    lattice::TransportInfo transportInfo;
     std::string customMountPoint = "";
     std::string serverUrl = "";
     std::string webViewSendFunctionName = "hostMessageCallback";

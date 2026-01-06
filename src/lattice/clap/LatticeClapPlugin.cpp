@@ -274,14 +274,52 @@ bool LatticeClapPlugin::activate(double sampleRate, uint32_t minFrameCount,
   return true;
 }
 
-clap_process_status
-LatticeClapPlugin::process(const clap_process *process) noexcept {
+clap_process_status LatticeClapPlugin::process(const clap_process *process) noexcept {
   if (process->audio_outputs_count <= 0)
     return CLAP_PROCESS_CONTINUE;
 
   float **outputs = process->audio_outputs[0].data32;
 
   std::size_t blockSize = process->frames_count;
+
+  // Update transport info from host
+  if (process->transport) {
+    lattice::TransportInfo transport;
+    const clap_event_transport_t* t = process->transport;
+    
+    if (t->flags & CLAP_TRANSPORT_HAS_TEMPO) {
+      transport.tempo = t->tempo;
+      transport.tempoInc = t->tempo_inc;
+    }
+    
+    if (t->flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE) {
+      transport.songPosBeats = t->song_pos_beats;
+      transport.barStart = t->bar_start;
+      transport.barNumber = t->bar_number;
+    }
+    
+    if (t->flags & CLAP_TRANSPORT_HAS_SECONDS_TIMELINE) {
+      transport.songPosSeconds = t->song_pos_seconds;
+    }
+    
+    if (t->flags & CLAP_TRANSPORT_HAS_TIME_SIGNATURE) {
+      transport.timeSigNum = t->tsig_num;
+      transport.timeSigDenom = t->tsig_denom;
+    }
+    
+    if (t->flags & CLAP_TRANSPORT_IS_LOOP_ACTIVE) {
+      transport.isLoopActive = true;
+      transport.loopStartBeats = t->loop_start_beats;
+      transport.loopEndBeats = t->loop_end_beats;
+      transport.loopStartSeconds = t->loop_start_seconds;
+      transport.loopEndSeconds = t->loop_end_seconds;
+    }
+    
+    transport.isPlaying = (t->flags & CLAP_TRANSPORT_IS_PLAYING) != 0;
+    transport.isRecording = (t->flags & CLAP_TRANSPORT_IS_RECORDING) != 0;
+    
+    processor.setTransportInfo(transport);
+  }
 
   // If there are inputs...
   if (process->audio_inputs && process->audio_inputs_count > 0) {
