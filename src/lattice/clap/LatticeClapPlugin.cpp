@@ -596,7 +596,104 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
         wv.setHTML(html);
       };
 
+#if LATTICE_WINDOWS
+      // Windows WebView2 limitation: fetchResource is not called for subsequent resources
+      // when using navigate() with custom protocols or setHTML()
+      // 
+      // This code inlines JavaScript modules to work around this limitation.
+      // 
+      // BUNDLER COMPATIBILITY: This code is compatible with webpack, esbuild, Rollup, etc.
+      // If using a bundler:
+      //   - Configure it to inline all JavaScript into the HTML (no external .js files)
+      //   - If the bundle has no import statements, this code safely passes it through unchanged
+      //   - Avoid external <script src="bundle.js"> as those won't load due to the WebView2 limitation
+
+      auto resourceDir = processor.getMountPoint().empty()
+                             ? lattice::File::getResourceDirFromBundle()
+                             : processor.getMountPoint();
+
+      try {
+        auto htmlPath = lattice::File::joinPath(resourceDir, "index.html");
+        auto htmlContent = lattice::File::getFileAsString(htmlPath);
+
+        // Find and process all <script type="module"> tags with imports
+        size_t scriptStart = 0;
+        while ((scriptStart = htmlContent.find("<script type=\"module\">", scriptStart)) != std::string::npos) {
+          size_t scriptContentStart = scriptStart + 22; // Length of "<script type=\"module\">"
+          size_t scriptEnd = htmlContent.find("</script>", scriptContentStart);
+
+          if (scriptEnd == std::string::npos) break;
+
+          std::string scriptContent = htmlContent.substr(scriptContentStart, scriptEnd - scriptContentStart);
+
+          // Find import statements - if loading bundled html, there should not
+          size_t importPos = 0;
+          std::string modifiedScript = scriptContent;
+
+          while ((importPos = modifiedScript.find("import {", importPos)) != std::string::npos) {
+            size_t fromPos = modifiedScript.find("} from '", importPos);
+            if (fromPos == std::string::npos) {
+              fromPos = modifiedScript.find("} from \"", importPos);
+            }
+
+            if (fromPos != std::string::npos) {
+              size_t pathStart = fromPos + 8; // Length of "} from '"
+              size_t pathEnd = modifiedScript.find("'", pathStart);
+              if (pathEnd == std::string::npos) {
+                pathEnd = modifiedScript.find("\"", pathStart);
+              }
+
+              if (pathEnd != std::string::npos) {
+                std::string importPath = modifiedScript.substr(pathStart, pathEnd - pathStart);
+
+                // Remove ./ prefix if present
+                if (importPath.substr(0, 2) == "./") {
+                  importPath = importPath.substr(2);
+                }
+
+                // Read the imported file
+                auto importFullPath = lattice::File::joinPath(resourceDir, importPath);
+                if (lattice::File::exists(importFullPath)) {
+                  auto importedContent = lattice::File::getFileAsString(importFullPath);
+
+                  // Remove the import line
+                  size_t importLineEnd = modifiedScript.find(";", pathEnd);
+                  if (importLineEnd != std::string::npos) {
+                    modifiedScript.erase(importPos, importLineEnd - importPos + 1);
+
+                    // Insert the imported content at the top of the script
+                    modifiedScript = importedContent + "\n" + modifiedScript;
+
+                    lattice::logDebug << "Inlined module: " << importPath;
+                  }
+                }
+
+                importPos = pathEnd;
+              } else {
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+
+          // Replace the original script content with modified version
+          htmlContent.replace(scriptContentStart, scriptEnd - scriptContentStart, modifiedScript);
+
+          scriptStart = scriptEnd;
+        }
+
+        wv.setHTML(htmlContent);
+        lattice::logDebug << "Loaded HTML with inlined modules for Windows WebView2";
+      } catch (const std::exception& e) {
+        lattice::logDebug << "ERROR loading/inlining HTML: " << e.what();
+        // Fallback to navigate
+        wv.navigate("choc://app/");
+      }
+#else
       wv.navigate("choc://app/");
+#endif
+
       processor.onWebViewIsReady();
 
       // Restore original handler that uses this->webview
