@@ -347,6 +347,7 @@ std::vector<std::string> File::getFilesOfType(
     std::unordered_set<std::string> extensions;
     std::stringstream ss(fileTypes);
     std::string ext;
+    bool matchAllFiles = false;
 
     auto toLower = [](std::string s)
     {
@@ -359,7 +360,15 @@ std::vector<std::string> File::getFilesOfType(
     {
         if (!ext.empty())
         {
-            extensions.insert(toLower(ext));
+            // Check if wildcard is specified
+            if (ext == "*")
+            {
+                matchAllFiles = true;
+            }
+            else
+            {
+                extensions.insert(toLower(ext));
+            }
         }
     }
 
@@ -369,11 +378,19 @@ std::vector<std::string> File::getFilesOfType(
         if (!entry.is_regular_file())
             continue;
 
-        std::string fileExt = toLower(entry.path().extension().string());
-
-        if (extensions.contains(fileExt))
+        // If wildcard is specified, include all files
+        if (matchAllFiles)
         {
             result.push_back(entry.path().string());
+        }
+        else
+        {
+            std::string fileExt = toLower(entry.path().extension().string());
+
+            if (extensions.contains(fileExt))
+            {
+                result.push_back(entry.path().string());
+            }
         }
     }
 
