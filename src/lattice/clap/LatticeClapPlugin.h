@@ -14,7 +14,6 @@
 #if !defined(LATTICE_LINUX)
 #include <clap/ext/params.h>
 #include <clap/events.h>
-#include <clap/ext/midi-ports.h>
 #include "choc/gui/choc_WebView.h"
 #else
 #include "text/choc_Files.h"
