@@ -13,7 +13,7 @@
 #include "choc/platform/choc_ReenableAllWarnings.h"
 #if !defined(LATTICE_LINUX)
 #include <clap/ext/params.h>
-#include <clap/ext/events.h>
+#include <clap/events.h>
 #include <clap/ext/midi-ports.h>
 #include "choc/gui/choc_WebView.h"
 #else
