@@ -38,16 +38,20 @@
 
 namespace lattice {
 
+    // Enum for note event types (shared between input and output)
+    enum class NoteEventType : uint16_t
+    {
+        noteOn = 0,    ///< Note-on event (CLAP_EVENT_NOTE_ON)
+        noteOff = 1,   ///< Note-off event (CLAP_EVENT_NOTE_OFF)
+        noteChoke = 2,  ///< Note choke event (CLAP_EVENT_NOTE_CHOKE)
+        undefined = 9999 ///< Undefined event type (for error handling)
+    };
+
     // Represents a musical note event (e.g., MIDI note on/off).
     struct NoteEvent
     {
-        enum class Type : uint16_t
-        {
-            noteOn = 0,    ///< Note-on event (CLAP_EVENT_NOTE_ON)
-            noteOff = 1,   ///< Note-off event (CLAP_EVENT_NOTE_OFF)
-            noteChoke = 2,  ///< Note choke event (CLAP_EVENT_NOTE_CHOKE)
-            undefined = 9999 ///< Undefined event type (for error handling)
-        };
+        // Keep Type alias for backwards compatibility
+        using Type = NoteEventType;
 
         Type type;             ///< Type of note event
         int16_t key;           ///< MIDI note number (0-127)
@@ -66,6 +70,123 @@ namespace lattice {
                 << ", key: " << key
                 << ", velocity: " << velocity
                 << ", noteId: " << noteId
+                << ", sampleOffset: " << sampleOffset << " }";
+        }
+    };
+
+    // Represents a note event to be output to the host (MIDI output)
+    struct OutputNoteEvent
+    {
+        NoteEventType type;    ///< Type of note event (noteOn, noteOff, noteChoke)
+        int16_t channel;       ///< MIDI channel (0-15)
+        int16_t key;           ///< MIDI note number (0-127)
+        double velocity;       ///< Normalized velocity (0.0 to 1.0)
+        int32_t noteId;        ///< Unique identifier for the note (-1 for wildcard)
+        uint32_t sampleOffset; ///< Sample offset within the audio block for sample-accurate timing
+
+        // Default constructor
+        OutputNoteEvent()
+            : type(NoteEventType::undefined), channel(0), key(0),
+              velocity(0.0), noteId(-1), sampleOffset(0) {}
+
+        // Full constructor
+        OutputNoteEvent(NoteEventType t, int16_t ch, int16_t k, double v, int32_t id, uint32_t offset)
+            : type(t), channel(ch), key(k), velocity(v), noteId(id), sampleOffset(offset) {}
+
+        // Convenience constructor for simple note on/off
+        OutputNoteEvent(NoteEventType t, int16_t k, double v, uint32_t offset)
+            : type(t), channel(0), key(k), velocity(v), noteId(-1), sampleOffset(offset) {}
+
+        // Prints event details for debugging
+        void log() const
+        {
+            lattice::logInfo << "OutputNoteEvent { type: " << static_cast<uint16_t>(type)
+                << ", channel: " << channel
+                << ", key: " << key
+                << ", velocity: " << velocity
+                << ", noteId: " << noteId
+                << ", sampleOffset: " << sampleOffset << " }";
+        }
+    };
+
+    // Enum for identifying raw MIDI message types (for optional parsing/filtering)
+    enum class MidiMessageType : uint8_t
+    {
+        NoteOff         = 0x80,
+        NoteOn          = 0x90,
+        PolyAftertouch  = 0xA0,
+        ControlChange   = 0xB0,
+        ProgramChange   = 0xC0,
+        ChannelPressure = 0xD0,
+        PitchBend       = 0xE0,
+        SystemMessage   = 0xF0,
+        Unknown         = 0x00
+    };
+
+    // Represents raw MIDI data for output to the host
+    struct RawMidiEvent
+    {
+        uint8_t data[3];       ///< Raw MIDI bytes (status, data1, data2)
+        uint8_t size;          ///< Number of valid bytes (1-3)
+        uint32_t sampleOffset; ///< Sample offset within the audio block for sample-accurate timing
+
+        // Default constructor
+        RawMidiEvent()
+            : data{0, 0, 0}, size(0), sampleOffset(0) {}
+
+        // Constructor from raw bytes
+        RawMidiEvent(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t sz, uint32_t offset)
+            : data{b0, b1, b2}, size(sz), sampleOffset(offset) {}
+
+        // Constructor from buffer (e.g., from Csound's WriteMidiData)
+        RawMidiEvent(const unsigned char* buffer, int numBytes, uint32_t offset)
+            : data{0, 0, 0}, size(static_cast<uint8_t>(numBytes > 3 ? 3 : numBytes)), sampleOffset(offset)
+        {
+            for (int i = 0; i < size; ++i)
+                data[i] = buffer[i];
+        }
+
+        // Helper to get message type from status byte
+        static MidiMessageType getMessageType(uint8_t statusByte)
+        {
+            if (statusByte >= 0xF0) return MidiMessageType::SystemMessage;
+            uint8_t type = statusByte & 0xF0;
+            switch (type) {
+                case 0x80: return MidiMessageType::NoteOff;
+                case 0x90: return MidiMessageType::NoteOn;
+                case 0xA0: return MidiMessageType::PolyAftertouch;
+                case 0xB0: return MidiMessageType::ControlChange;
+                case 0xC0: return MidiMessageType::ProgramChange;
+                case 0xD0: return MidiMessageType::ChannelPressure;
+                case 0xE0: return MidiMessageType::PitchBend;
+                default:   return MidiMessageType::Unknown;
+            }
+        }
+
+        // Get message type for this event
+        MidiMessageType getType() const { return getMessageType(data[0]); }
+
+        // Get MIDI channel (0-15) from status byte
+        uint8_t getChannel() const { return data[0] & 0x0F; }
+
+        // Check if this is a specific message type
+        bool isNoteOn() const { return getType() == MidiMessageType::NoteOn && data[2] > 0; }
+        bool isNoteOff() const { return getType() == MidiMessageType::NoteOff ||
+                                        (getType() == MidiMessageType::NoteOn && data[2] == 0); }
+        bool isCC() const { return getType() == MidiMessageType::ControlChange; }
+        bool isProgramChange() const { return getType() == MidiMessageType::ProgramChange; }
+        bool isPitchBend() const { return getType() == MidiMessageType::PitchBend; }
+
+        // Prints event details for debugging
+        void log() const
+        {
+            lattice::logInfo << "RawMidiEvent { data: ["
+                << static_cast<int>(data[0]) << ", "
+                << static_cast<int>(data[1]) << ", "
+                << static_cast<int>(data[2]) << "], size: "
+                << static_cast<int>(size) << ", type: "
+                << static_cast<int>(static_cast<uint8_t>(getType()))
+                << ", channel: " << static_cast<int>(getChannel())
                 << ", sampleOffset: " << sampleOffset << " }";
         }
     };

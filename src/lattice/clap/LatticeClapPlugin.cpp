@@ -68,6 +68,20 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
     }
   };
 
+  processor.addOutputNoteEvent = [this](lattice::OutputNoteEvent noteEvent) {
+    // Don't enqueue if we're shutting down to prevent race condition
+    if (!isShuttingDown.load(std::memory_order_acquire)) {
+      outputNoteEvents.enqueue(noteEvent);
+    }
+  };
+
+  processor.addRawMidiEvent = [this](lattice::RawMidiEvent midiEvent) {
+    // Don't enqueue if we're shutting down to prevent race condition
+    if (!isShuttingDown.load(std::memory_order_acquire)) {
+      rawMidiEvents.enqueue(midiEvent);
+    }
+  };
+
 #ifdef LATTICE_LINUX
   webviewProcessPath = createTempFile(
       std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX")
@@ -84,10 +98,17 @@ LatticeClapPlugin::~LatticeClapPlugin() {
   // operations
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  // Drain any remaining items from the queue to prevent assertion on
-  // destruction
-  lattice::ParameterChange dummy;
-  while (parameterChanges.try_dequeue(dummy)) {
+  // Drain any remaining items from queues to prevent assertion on destruction
+  lattice::ParameterChange paramDummy;
+  while (parameterChanges.try_dequeue(paramDummy)) {
+    // Just drain, don't process
+  }
+  lattice::OutputNoteEvent noteDummy;
+  while (outputNoteEvents.try_dequeue(noteDummy)) {
+    // Just drain, don't process
+  }
+  lattice::RawMidiEvent midiDummy;
+  while (rawMidiEvents.try_dequeue(midiDummy)) {
     // Just drain, don't process
   }
 
@@ -209,14 +230,15 @@ bool LatticeClapPlugin::paramsInfo(uint32_t paramId,
 
 bool LatticeClapPlugin::notePortsInfo(
     uint32_t index, bool isInput, clap_note_port_info *info) const noexcept {
-  if (!isInput || index)
+  if (index != 0)
     return false;
-  info->id = 0;
+
+  info->id = isInput ? 0 : 1;  // Different IDs for input and output ports
   info->supported_dialects = CLAP_NOTE_DIALECT_MIDI |
                              CLAP_NOTE_DIALECT_MIDI_MPE |
                              CLAP_NOTE_DIALECT_CLAP;
   info->preferred_dialect = CLAP_NOTE_DIALECT_CLAP;
-  snprintf(info->name, sizeof(info->name), "%s", "Note Port");
+  snprintf(info->name, sizeof(info->name), "%s", isInput ? "Note Input" : "Note Output");
 
   return true;
 }
@@ -393,6 +415,7 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
   // Check shutdown flag before accessing queue to prevent race condition during
   // destruction
   if (!isShuttingDown.load(std::memory_order_acquire)) {
+    // Handle parameter changes
     lattice::ParameterChange change;
     while (parameterChanges.try_dequeue(change)) {
       switch (change.type) {
@@ -414,6 +437,54 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
         emitGestureEnd(change.paramId, process->out_events);
         break;
       }
+    }
+
+    // Handle output note events (MIDI output)
+    lattice::OutputNoteEvent noteOut;
+    while (outputNoteEvents.try_dequeue(noteOut)) {
+      clap_event_note_t ev = {};
+      ev.header.size = sizeof(ev);
+      ev.header.time = noteOut.sampleOffset;  // Sample-accurate timing
+      ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+      ev.header.flags = 0;
+      ev.note_id = noteOut.noteId;
+      ev.port_index = 0;
+      ev.channel = noteOut.channel;
+      ev.key = noteOut.key;
+      ev.velocity = noteOut.velocity;
+
+      switch (noteOut.type) {
+      case lattice::NoteEventType::noteOn:
+        ev.header.type = CLAP_EVENT_NOTE_ON;
+        break;
+      case lattice::NoteEventType::noteOff:
+        ev.header.type = CLAP_EVENT_NOTE_OFF;
+        break;
+      case lattice::NoteEventType::noteChoke:
+        ev.header.type = CLAP_EVENT_NOTE_CHOKE;
+        break;
+      default:
+        continue;  // Skip undefined event types
+      }
+
+      process->out_events->try_push(process->out_events, &ev.header);
+    }
+
+    // Handle raw MIDI output events (CC, program change, pitch bend, etc.)
+    lattice::RawMidiEvent midiOut;
+    while (rawMidiEvents.try_dequeue(midiOut)) {
+      clap_event_midi_t ev = {};
+      ev.header.size = sizeof(ev);
+      ev.header.time = midiOut.sampleOffset;  // Sample-accurate timing
+      ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+      ev.header.type = CLAP_EVENT_MIDI;
+      ev.header.flags = 0;
+      ev.port_index = 0;
+      ev.data[0] = midiOut.data[0];
+      ev.data[1] = midiOut.data[1];
+      ev.data[2] = midiOut.data[2];
+
+      process->out_events->try_push(process->out_events, &ev.header);
     }
   }
   return CLAP_PROCESS_CONTINUE;

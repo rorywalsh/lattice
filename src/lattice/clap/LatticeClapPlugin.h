@@ -13,6 +13,8 @@
 #include "choc/platform/choc_ReenableAllWarnings.h"
 #if !defined(LATTICE_LINUX)
 #include <clap/ext/params.h>
+#include <clap/ext/events.h>
+#include <clap/ext/midi-ports.h>
 #include "choc/gui/choc_WebView.h"
 #else
 #include "text/choc_Files.h"
@@ -48,8 +50,8 @@ public:
     uint32_t paramsCount() const noexcept override;
     uint32_t audioPortsCount(bool /*isInput*/) const noexcept override;
 
-    uint32_t notePortsCount(bool isInput) const noexcept override {    
-        return isInput ? 1 : 0;
+    uint32_t notePortsCount(bool /*isInput*/) const noexcept override {
+        return 1;  // Both input and output note ports
     }
     
     bool stateSave(const clap_ostream *ostream) noexcept override;
@@ -97,6 +99,8 @@ public:
     void onTimer(clap_id timerId) noexcept override;
 
     moodycamel::ReaderWriterQueue<lattice::ParameterChange> parameterChanges;
+    moodycamel::ReaderWriterQueue<lattice::OutputNoteEvent> outputNoteEvents;
+    moodycamel::ReaderWriterQueue<lattice::RawMidiEvent> rawMidiEvents;
 private:
     lattice::Processor& processor; // reference to processor
     clap_id timerId = CLAP_INVALID_ID;
