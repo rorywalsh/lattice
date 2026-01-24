@@ -395,6 +395,7 @@ std::vector<std::string> File::getFilesOfType(
     }
 
     // Sort numerically when possible
+    // Use a safer approach that avoids stoi crashes on Windows
     std::sort(result.begin(), result.end(),
               [](const std::string &a, const std::string &b)
               {
@@ -403,14 +404,24 @@ std::vector<std::string> File::getFilesOfType(
                   std::string sa = pa.stem().string();
                   std::string sb = pb.stem().string();
 
-                  auto toInt = [](const std::string &s) -> std::optional<int>
+                  // Check if strings are purely numeric before attempting conversion
+                  auto isNumeric = [](const std::string &s) -> bool
                   {
+                      if (s.empty()) return false;
+                      for (char c : s)
+                      {
+                          if (!std::isdigit(static_cast<unsigned char>(c)))
+                              return false;
+                      }
+                      return true;
+                  };
+
+                  auto toInt = [&isNumeric](const std::string &s) -> std::optional<int>
+                  {
+                      if (!isNumeric(s)) return std::nullopt;
                       try
                       {
-                          size_t idx;
-                          int val = std::stoi(s, &idx);
-                          return (idx == s.size()) ? std::optional<int>(val)
-                                                   : std::nullopt;
+                          return std::stoi(s);
                       }
                       catch (...)
                       {
