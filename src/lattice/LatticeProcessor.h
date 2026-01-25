@@ -56,6 +56,7 @@ public:
         addParameterChange = [](lattice::ParameterChange) {};
         addOutputNoteEvent = [](lattice::OutputNoteEvent) {};
         addRawMidiEvent = [](lattice::RawMidiEvent) {};
+        requestGuiResize = [](uint32_t, uint32_t) { return false; };
     }
     // Virtual destructor
     virtual ~Processor() = default;
@@ -173,7 +174,8 @@ public:
     std::function<void(lattice::OutputNoteEvent)> addOutputNoteEvent;  ///< Callback to output MIDI notes to host
     std::function<void(lattice::RawMidiEvent)> addRawMidiEvent;        ///< Callback to output raw MIDI to host
     std::function<void(std::string)> setWebViewHtml;
-   
+    std::function<bool(uint32_t width, uint32_t height)> requestGuiResize;  ///< Callback to request GUI resize from host
+
 private:
     int editorWidth = 800;
     int editorHeight = 800;

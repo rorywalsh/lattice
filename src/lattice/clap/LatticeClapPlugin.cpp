@@ -82,6 +82,15 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
     }
   };
 
+  processor.requestGuiResize = [this](uint32_t width, uint32_t height) -> bool {
+    if (auto *host = _host.host()) {
+      if (auto *gui = (const clap_host_gui *)host->get_extension(host, CLAP_EXT_GUI)) {
+        return gui->request_resize(host, width, height);
+      }
+    }
+    return false;
+  };
+
 #ifdef LATTICE_LINUX
   webviewProcessPath = createTempFile(
       std::string("/tmp/latWV_" + instanceMap.getInstanceId() + "XXXXXX")

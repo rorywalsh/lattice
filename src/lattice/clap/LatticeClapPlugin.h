@@ -8,6 +8,7 @@
 #include <clap/helpers/host-proxy.hxx>
 #include <clap/helpers/plugin.hxx>
 #include <clap/ext/timer-support.h>
+#include <clap/ext/gui.h>
 
 #include <readerwriterqueue.h>
 #include "choc/platform/choc_ReenableAllWarnings.h"
