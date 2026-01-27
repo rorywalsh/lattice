@@ -84,7 +84,8 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 
   processor.requestGuiResize = [this](uint32_t width, uint32_t height) -> bool {
     if (auto *host = _host.host()) {
-      if (auto *gui = (const clap_host_gui *)host->get_extension(host, CLAP_EXT_GUI)) {
+      if (auto *gui =
+              (const clap_host_gui *)host->get_extension(host, CLAP_EXT_GUI)) {
         return gui->request_resize(host, width, height);
       }
     }
@@ -242,12 +243,13 @@ bool LatticeClapPlugin::notePortsInfo(
   if (index != 0)
     return false;
 
-  info->id = isInput ? 0 : 1;  // Different IDs for input and output ports
+  info->id = isInput ? 0 : 1; // Different IDs for input and output ports
   info->supported_dialects = CLAP_NOTE_DIALECT_MIDI |
                              CLAP_NOTE_DIALECT_MIDI_MPE |
                              CLAP_NOTE_DIALECT_CLAP;
   info->preferred_dialect = CLAP_NOTE_DIALECT_CLAP;
-  snprintf(info->name, sizeof(info->name), "%s", isInput ? "Note Input" : "Note Output");
+  snprintf(info->name, sizeof(info->name), "%s",
+           isInput ? "Note Input" : "Note Output");
 
   return true;
 }
@@ -305,7 +307,8 @@ bool LatticeClapPlugin::activate(double sampleRate, uint32_t minFrameCount,
   return true;
 }
 
-clap_process_status LatticeClapPlugin::process(const clap_process *process) noexcept {
+clap_process_status
+LatticeClapPlugin::process(const clap_process *process) noexcept {
   if (process->audio_outputs_count <= 0)
     return CLAP_PROCESS_CONTINUE;
 
@@ -316,28 +319,28 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
   // Update transport info from host
   if (process->transport) {
     lattice::TransportInfo transport;
-    const clap_event_transport_t* t = process->transport;
-    
+    const clap_event_transport_t *t = process->transport;
+
     if (t->flags & CLAP_TRANSPORT_HAS_TEMPO) {
       transport.tempo = t->tempo;
       transport.tempoInc = t->tempo_inc;
     }
-    
+
     if (t->flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE) {
       transport.songPosBeats = t->song_pos_beats;
       transport.barStart = t->bar_start;
       transport.barNumber = t->bar_number;
     }
-    
+
     if (t->flags & CLAP_TRANSPORT_HAS_SECONDS_TIMELINE) {
       transport.songPosSeconds = t->song_pos_seconds;
     }
-    
+
     if (t->flags & CLAP_TRANSPORT_HAS_TIME_SIGNATURE) {
       transport.timeSigNum = t->tsig_num;
       transport.timeSigDenom = t->tsig_denom;
     }
-    
+
     if (t->flags & CLAP_TRANSPORT_IS_LOOP_ACTIVE) {
       transport.isLoopActive = true;
       transport.loopStartBeats = t->loop_start_beats;
@@ -345,10 +348,10 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
       transport.loopStartSeconds = t->loop_start_seconds;
       transport.loopEndSeconds = t->loop_end_seconds;
     }
-    
+
     transport.isPlaying = (t->flags & CLAP_TRANSPORT_IS_PLAYING) != 0;
     transport.isRecording = (t->flags & CLAP_TRANSPORT_IS_RECORDING) != 0;
-    
+
     processor.setTransportInfo(transport);
   }
 
@@ -453,7 +456,7 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
     while (outputNoteEvents.try_dequeue(noteOut)) {
       clap_event_note_t ev = {};
       ev.header.size = sizeof(ev);
-      ev.header.time = noteOut.sampleOffset;  // Sample-accurate timing
+      ev.header.time = noteOut.sampleOffset; // Sample-accurate timing
       ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
       ev.header.flags = 0;
       ev.note_id = noteOut.noteId;
@@ -473,7 +476,7 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
         ev.header.type = CLAP_EVENT_NOTE_CHOKE;
         break;
       default:
-        continue;  // Skip undefined event types
+        continue; // Skip undefined event types
       }
 
       process->out_events->try_push(process->out_events, &ev.header);
@@ -484,7 +487,7 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
     while (rawMidiEvents.try_dequeue(midiOut)) {
       clap_event_midi_t ev = {};
       ev.header.size = sizeof(ev);
-      ev.header.time = midiOut.sampleOffset;  // Sample-accurate timing
+      ev.header.time = midiOut.sampleOffset; // Sample-accurate timing
       ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
       ev.header.type = CLAP_EVENT_MIDI;
       ev.header.flags = 0;
@@ -496,6 +499,16 @@ clap_process_status LatticeClapPlugin::process(const clap_process *process) noex
       process->out_events->try_push(process->out_events, &ev.header);
     }
   }
+
+  // Fallback for hosts that don't support timer extension (e.g., AUv2 wrapper)
+  // Request a main thread callback if we have pending webview messages
+  if (usingCallbackFallback && webviewMessageQueue.peek() != nullptr) {
+    // Queue has messages, request callback to process them on main thread
+    if (auto *host = _host.host()) {
+      host->request_callback(host);
+    }
+  }
+
   return CLAP_PROCESS_CONTINUE;
 }
 
@@ -566,11 +579,16 @@ void LatticeClapPlugin::sendParameterValueToHost(clap_id paramId,
 }
 
 void LatticeClapPlugin::startTimer() {
+  usingHostTimer = false;
+  usingCallbackFallback = false;
+
   if (auto *host = _host.host()) {
-    if (auto *timerSupport = (const clap_host_timer_support *)host->get_extension(
-            host, CLAP_EXT_TIMER_SUPPORT)) {
+    if (auto *timerSupport =
+            (const clap_host_timer_support *)host->get_extension(
+                host, CLAP_EXT_TIMER_SUPPORT)) {
       // Request timer callback every 16ms (~60fps)
       if (timerSupport->register_timer(host, 16, &timerId)) {
+        usingHostTimer = true;
         lattice::logDebug << "Timer registered with ID: " << timerId;
       } else {
         lattice::logDebug << "Failed to register timer";
@@ -579,18 +597,28 @@ void LatticeClapPlugin::startTimer() {
       lattice::logDebug << "Host does not support timer extension";
     }
   }
+
+  // If timer registration failed, use callback fallback
+  if (!usingHostTimer) {
+    usingCallbackFallback = true;
+    lattice::logDebug << "Using host callback fallback for webview messages";
+  }
 }
 
 void LatticeClapPlugin::stopTimer() {
   if (timerId != CLAP_INVALID_ID) {
     if (auto *host = _host.host()) {
-      if (auto *timerSupport = (const clap_host_timer_support *)host->get_extension(
-              host, CLAP_EXT_TIMER_SUPPORT)) {
+      if (auto *timerSupport =
+              (const clap_host_timer_support *)host->get_extension(
+                  host, CLAP_EXT_TIMER_SUPPORT)) {
         timerSupport->unregister_timer(host, timerId);
         timerId = CLAP_INVALID_ID;
       }
     }
   }
+
+  usingHostTimer = false;
+  usingCallbackFallback = false;
 }
 
 //========================================================================================
@@ -677,16 +705,19 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
       };
 
 #if LATTICE_WINDOWS
-      // Windows WebView2 limitation: fetchResource is not called for subsequent resources
-      // when using navigate() with custom protocols or setHTML()
-      // 
+      // Windows WebView2 limitation: fetchResource is not called for subsequent
+      // resources when using navigate() with custom protocols or setHTML()
+      //
       // This code inlines JavaScript modules to work around this limitation.
-      // 
-      // BUNDLER COMPATIBILITY: This code is compatible with webpack, esbuild, Rollup, etc.
-      // If using a bundler:
-      //   - Configure it to inline all JavaScript into the HTML (no external .js files)
-      //   - If the bundle has no import statements, this code safely passes it through unchanged
-      //   - Avoid external <script src="bundle.js"> as those won't load due to the WebView2 limitation
+      //
+      // BUNDLER COMPATIBILITY: This code is compatible with webpack, esbuild,
+      // Rollup, etc. If using a bundler:
+      //   - Configure it to inline all JavaScript into the HTML (no external
+      //   .js files)
+      //   - If the bundle has no import statements, this code safely passes it
+      //   through unchanged
+      //   - Avoid external <script src="bundle.js"> as those won't load due to
+      //   the WebView2 limitation
 
       auto resourceDir = processor.getMountPoint().empty()
                              ? lattice::File::getResourceDirFromBundle()
@@ -698,19 +729,25 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
 
         // Find and process all <script type="module"> tags with imports
         size_t scriptStart = 0;
-        while ((scriptStart = htmlContent.find("<script type=\"module\">", scriptStart)) != std::string::npos) {
-          size_t scriptContentStart = scriptStart + 22; // Length of "<script type=\"module\">"
+        while ((scriptStart = htmlContent.find("<script type=\"module\">",
+                                               scriptStart)) !=
+               std::string::npos) {
+          size_t scriptContentStart =
+              scriptStart + 22; // Length of "<script type=\"module\">"
           size_t scriptEnd = htmlContent.find("</script>", scriptContentStart);
 
-          if (scriptEnd == std::string::npos) break;
+          if (scriptEnd == std::string::npos)
+            break;
 
-          std::string scriptContent = htmlContent.substr(scriptContentStart, scriptEnd - scriptContentStart);
+          std::string scriptContent = htmlContent.substr(
+              scriptContentStart, scriptEnd - scriptContentStart);
 
           // Find import statements - if loading bundled html, there should not
           size_t importPos = 0;
           std::string modifiedScript = scriptContent;
 
-          while ((importPos = modifiedScript.find("import {", importPos)) != std::string::npos) {
+          while ((importPos = modifiedScript.find("import {", importPos)) !=
+                 std::string::npos) {
             size_t fromPos = modifiedScript.find("} from '", importPos);
             if (fromPos == std::string::npos) {
               fromPos = modifiedScript.find("} from \"", importPos);
@@ -724,7 +761,8 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
               }
 
               if (pathEnd != std::string::npos) {
-                std::string importPath = modifiedScript.substr(pathStart, pathEnd - pathStart);
+                std::string importPath =
+                    modifiedScript.substr(pathStart, pathEnd - pathStart);
 
                 // Remove ./ prefix if present
                 if (importPath.substr(0, 2) == "./") {
@@ -732,14 +770,17 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                 }
 
                 // Read the imported file
-                auto importFullPath = lattice::File::joinPath(resourceDir, importPath);
+                auto importFullPath =
+                    lattice::File::joinPath(resourceDir, importPath);
                 if (lattice::File::exists(importFullPath)) {
-                  auto importedContent = lattice::File::getFileAsString(importFullPath);
+                  auto importedContent =
+                      lattice::File::getFileAsString(importFullPath);
 
                   // Remove the import line
                   size_t importLineEnd = modifiedScript.find(";", pathEnd);
                   if (importLineEnd != std::string::npos) {
-                    modifiedScript.erase(importPos, importLineEnd - importPos + 1);
+                    modifiedScript.erase(importPos,
+                                         importLineEnd - importPos + 1);
 
                     // Insert the imported content at the top of the script
                     modifiedScript = importedContent + "\n" + modifiedScript;
@@ -758,14 +799,16 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
           }
 
           // Replace the original script content with modified version
-          htmlContent.replace(scriptContentStart, scriptEnd - scriptContentStart, modifiedScript);
+          htmlContent.replace(scriptContentStart,
+                              scriptEnd - scriptContentStart, modifiedScript);
 
           scriptStart = scriptEnd;
         }
 
         wv.setHTML(htmlContent);
-        lattice::logDebug << "Loaded HTML with inlined modules for Windows WebView2";
-      } catch (const std::exception& e) {
+        lattice::logDebug
+            << "Loaded HTML with inlined modules for Windows WebView2";
+      } catch (const std::exception &e) {
         lattice::logDebug << "ERROR loading/inlining HTML: " << e.what();
         // Fallback to navigate
         wv.navigate("choc://app/");
@@ -785,7 +828,7 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
       auto resourceDir = processor.getMountPoint().empty()
                              ? lattice::File::getResourceDirFromBundle()
                              : processor.getMountPoint();
-      
+
       if (path == "/" || path == "/index.html") {
         auto res = lattice::File::getFileAsString(
             lattice::File::joinPath(resourceDir, "index.html"));
@@ -793,7 +836,7 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
         resource.mimeType = "text/html";
         return resource;
       }
-      
+
       // Clean the path - remove leading slash if present
       std::string cleanPath = path;
       if (!cleanPath.empty() && cleanPath[0] == '/') {
@@ -807,11 +850,12 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
       }
 
       auto fullPath = lattice::File::joinPath(resourceDir, cleanPath);
-      
+
       // Check if file exists before trying to load it
       if (!lattice::File::exists(fullPath)) {
         lattice::logDebug << "Resource not found: " << fullPath;
-        return choc::ui::WebView::Options::Resource{}; // Return empty for missing files
+        return choc::ui::WebView::Options::Resource{}; // Return empty for
+                                                       // missing files
       }
 
       auto res = lattice::File::getFileAsString(fullPath);
@@ -990,6 +1034,12 @@ void LatticeClapPlugin::onTimer(clap_id /*timerId*/) noexcept {
   processWebviewMessages();
 }
 
+void LatticeClapPlugin::onMainThread() noexcept {
+  // This is called on the main thread by the host in response to
+  // request_callback() Used as fallback when timer extension is not supported
+  processWebviewMessages();
+}
+
 void LatticeClapPlugin::processWebviewMessages() {
   std::string script;
 
@@ -1055,4 +1105,3 @@ void LatticeClapPlugin::processWebviewMessages() {
         });
   }
 }
-
