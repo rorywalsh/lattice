@@ -31,7 +31,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     choc
     GIT_REPOSITORY https://github.com/Tracktion/choc
-    GIT_TAG main
+    GIT_TAG ae4c54d22b53a599222c1dfaa4b4007d0ec310c7
     FIND_PACKAGE_ARGS NAMES choc
 )
 
