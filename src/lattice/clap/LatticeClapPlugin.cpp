@@ -229,11 +229,23 @@ bool LatticeClapPlugin::paramsInfo(uint32_t paramId,
 
   info->id = paramId;
   info->flags = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_MODULATABLE;
+
+  // Check if this parameter should be stepped (discrete values)
+  // A parameter is stepped if increment >= 1.0, indicating integer steps
+  if (p.increment >= 1.0f) {
+    info->flags |= CLAP_PARAM_IS_STEPPED;
+  }
+
   strncpy(info->name, p.name.c_str(), CLAP_NAME_SIZE);
   strncpy(info->module, "", CLAP_NAME_SIZE);
-  info->min_value = 0.f;
-  info->max_value = 1.f;
-  info->default_value = 0.f; // p.value;//utils::decibelsToGain(0.0);
+
+  // Report actual parameter range to host (not normalized 0-1)
+  info->min_value = p.min;
+  info->max_value = p.max;
+
+  // Calculate default value from the parameter's range
+  // If no default is set, use the parameter's current value or min
+  info->default_value = p.fromNormalised(0.5f); // Default to midpoint
 
   return true;
 }
@@ -260,6 +272,8 @@ bool LatticeClapPlugin::paramsValue(clap_id paramId, double *value) noexcept {
   if (paramId > numParameters)
     return false;
 
+  // Return the parameter's actual value in its defined range [min, max]
+  // Note: Parameter.value should be stored denormalized (in actual range)
   *value = processor.getParameters()[paramId].value;
   return true;
 }
@@ -272,13 +286,9 @@ bool LatticeClapPlugin::paramsValueToText(clap_id paramId, double value,
   if (paramId > numParameters)
     return false;
 
-  const auto updatedValue =
-      processor.getParameter(paramId).fromNormalised(value);
-
-  //    processor.setParameter(paramId, updatedValue);
-
-  snprintf(display, size, "%.2f", updatedValue);
-  std::cout << display << std::endl;
+  // value is already in actual range (denormalized) from CLAP
+  // Format it for display
+  snprintf(display, size, "%.2f", value);
 
   return true;
 }
@@ -375,8 +385,8 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
         nlohmann::json j, h;
         j["command"] = "parameterChange";
         h["paramIdx"] = p->param_id;
-        h["value"] =
-            processor.getParameter(p->param_id).fromNormalised(p->value);
+        // p->value is now in actual range (denormalized) since we report actual min/max to CLAP
+        h["value"] = p->value;
         j["data"] = h;
 
         std::stringstream fullScript;
@@ -390,7 +400,10 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
           webviewMessageQueue.enqueue(fullScript.str());
         }
 #endif
-        sendParameterValueToHost(p->param_id, p->value);
+        // Normalize the value before sending to processor.setParameter()
+        // since setParameter expects normalized values [0-1]
+        double normalizedValue = processor.getParameter(p->param_id).toNormalised(p->value);
+        sendParameterValueToHost(p->param_id, normalizedValue);
       }
     } else if (nextEvent->type == CLAP_EVENT_NOTE_ON ||
                nextEvent->type == CLAP_EVENT_NOTE_OFF ||
@@ -430,13 +443,17 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
     // Handle parameter changes
     lattice::ParameterChange change;
     while (parameterChanges.try_dequeue(change)) {
+      // ParameterChange.value is always normalized [0-1]
+      // Convert to actual range before sending to CLAP host
+      double denormalizedValue = processor.getParameter(change.paramId).fromNormalised(change.value);
+
       switch (change.type) {
       case lattice::ParamChangeType::GestureBegin:
         emitGestureBegin(change.paramId, process->out_events);
         break;
 
       case lattice::ParamChangeType::Value:
-        emitValue(change.paramId, change.value, process->out_events);
+        emitValue(change.paramId, denormalizedValue, process->out_events);
         break;
 
       case lattice::ParamChangeType::GestureEnd:
@@ -445,7 +462,7 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
 
       case lattice::ParamChangeType::Complete:
         emitGestureBegin(change.paramId, process->out_events);
-        emitValue(change.paramId, change.value, process->out_events);
+        emitValue(change.paramId, denormalizedValue, process->out_events);
         emitGestureEnd(change.paramId, process->out_events);
         break;
       }

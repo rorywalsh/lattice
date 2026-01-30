@@ -289,6 +289,12 @@ namespace lattice {
         float skew;         ///< Skew factor for scaling
         float increment;    ///< Step size for parameter change
 
+        // Note on `increment` parameter. 
+        // `increment >= 1.0`: The host will display discrete integer steps (e.g., move from 1 to 2 to 3, etc.) 
+        //  in its native controls, and enforce these steps during automation.
+        // `increment < 1.0`: The host displays a continuous slider. It is up to the developer to use the increment 
+        //  value appropriately when setting parameter values, for example through parameter value quantisation.
+
         // Constructor with default values
         Parameter(const std::string& paramName = "", float paramMin = 0.f, float paramMax = 1.f,
             float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f)
