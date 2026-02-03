@@ -4,14 +4,16 @@ include(FetchContent)
 FetchContent_Declare(
     clap
     GIT_REPOSITORY https://github.com/free-audio/clap.git
-    GIT_TAG main
+    # Pinned to commit as of 2026-02-03 to avoid upstream breakage
+    GIT_TAG 29ffcc273be7c7c651f6c9953b99e69700e2387a
     FIND_PACKAGE_ARGS NAMES clap
 )
 
 FetchContent_Declare(
     clap-wrapper
     GIT_REPOSITORY https://github.com/free-audio/clap-wrapper
-    GIT_TAG main
+    # Pinned to commit as of 2026-02-03 to avoid upstream breakage
+    GIT_TAG 62bf4f193d8dac354a946c1e0cffda9174317042
     FIND_PACKAGE_ARGS NAMES clap-wrapper
 )
 
