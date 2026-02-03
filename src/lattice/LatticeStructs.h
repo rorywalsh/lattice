@@ -281,19 +281,36 @@ namespace lattice {
 
 
     // Represents an adjustable parameter for an audio plugin.
+    //
+    // ## Value Storage Convention:
+    // - `value` field: ALWAYS stored as NORMALIZED [0.0, 1.0] for internal routing and DAW automation
+    // - `min`/`max` fields: Define the parameter's full denormalized range (e.g., 20-20000 Hz)
+    //
+    // ## Conversion at Boundaries:
+    // - Frontend/UI: Should uses DENORMALIZED values (full range) for simplicity
+    //   - Incoming from UI: Use toNormalised() before storing in `value`
+    //   - Outgoing to UI: Use fromNormalised() when sending from `value`
+    //
+    // - Plugin Host (CLAP/VST3/AUv2): Reports full range to host for stepped parameter support
+    //   - Incoming from host: Use toNormalised() before storing in `value`
+    //   - Outgoing to host: Use fromNormalised() when reading from `value`
+    //
+    // This architecture keeps internal routing normalized while making it simple for
+    // frontend developers and supporting modern host features like stepped parameters.
+    //
     struct Parameter {
         std::string name;   ///< Parameter name
-        float min;          ///< Minimum value
-        float max;          ///< Maximum value
-        float value;        ///< Current value
-        float skew;         ///< Skew factor for scaling
-        float increment;    ///< Step size for parameter change
+        float min;          ///< Minimum value (denormalized range)
+        float max;          ///< Maximum value (denormalized range)
+        float value;        ///< Current value - ALWAYS NORMALIZED [0.0, 1.0] for internal use
+        float skew;         ///< Skew factor for non-linear scaling
+        float increment;    ///< Step size for parameter changes (in denormalized range)
 
-        // Note on `increment` parameter. 
-        // `increment >= 1.0`: The host will display discrete integer steps (e.g., move from 1 to 2 to 3, etc.) 
-        //  in its native controls, and enforce these steps during automation.
-        // `increment < 1.0`: The host displays a continuous slider. It is up to the developer to use the increment 
-        //  value appropriately when setting parameter values, for example through parameter value quantisation.
+        // Note on `increment` parameter:
+        // - `increment >= 1.0`: The host will display discrete integer steps (e.g., move from 1 to 2 to 3, etc.)
+        //   in its native controls, and enforce these steps during automation.
+        // - `increment < 1.0`: The host displays a continuous slider. It is up to the developer to use the increment
+        //   value appropriately when setting parameter values, for example through parameter value quantisation.
 
         // Constructor with default values
         Parameter(const std::string& paramName = "", float paramMin = 0.f, float paramMax = 1.f,

@@ -274,7 +274,7 @@ bool LatticeClapPlugin::paramsValue(clap_id paramId, double *value) noexcept {
 
   // Return the parameter's actual value in its defined range [min, max]
   // Note: Parameter.value should be stored denormalized (in actual range)
-  *value = processor.getParameters()[paramId].value;
+  *value = processor.getParameter(paramId).fromNormalised(processor.getParameters()[paramId].value);
   return true;
 }
 
