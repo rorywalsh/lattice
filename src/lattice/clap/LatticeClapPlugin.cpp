@@ -9,6 +9,8 @@
 extern "C" {
 bool attachViewToParent(void *childView,
                         void *parentView); // Forward declaration
+bool resizeView(void *view, uint32_t width,
+                uint32_t height); // Forward declaration
 }
 #elif LATTICE_LINUX
 #include "../LinuxWebviewProcess/webview_binary.h"
@@ -90,6 +92,12 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
       }
     }
     return false;
+  };
+
+  processor.applyGuiResize = [this](uint32_t width, uint32_t height) {
+    // Directly call guiSetSize to resize the webview
+    // This is needed for hosts that accept resize but don't call guiSetSize back
+    guiSetSize(width, height);
   };
 
 #ifdef LATTICE_LINUX
@@ -920,8 +928,53 @@ bool LatticeClapPlugin::guiSetScale(double) noexcept { return true; }
 bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept {
   currentWidth = width;
   currentHeight = height;
+
 #ifdef LATTICE_LINUX
+  // TODO: Send resize message to Linux webview process
   return true;
+#elif LATTICE_WINDOWS
+  if (!webview)
+    return false;
+
+  // Resize the webview window to match the new size
+  auto *child = static_cast<HWND>(webview->getViewHandle());
+  if (child) {
+    ::SetWindowPos(child, NULL, 0, 0, width, height,
+                   SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED);
+    ::InvalidateRect(child, NULL, false);
+
+    // Trigger a resize event in JavaScript so the page knows to reflow
+    std::string resizeScript = "window.dispatchEvent(new Event('resize'));";
+    webview->evaluateJavascript(resizeScript, [](const std::string& error, const choc::value::ValueView&) {
+      if (!error.empty()) {
+        lattice::logDebug << "Resize event dispatch error: " << error;
+      }
+    });
+
+    return true;
+  }
+  return false;
+#elif LATTICE_MACOS
+  if (!webview)
+    return false;
+
+  // Resize the webview's NSView using platform-specific helper
+  void *viewHandle = webview->getViewHandle();
+  if (viewHandle) {
+    bool success = resizeView(viewHandle, width, height);
+    if (success) {
+      // Trigger a resize event in JavaScript so the page knows to reflow
+      // This allows CSS and JavaScript to respond to the new viewport size
+      std::string resizeScript = "window.dispatchEvent(new Event('resize'));";
+      webview->evaluateJavascript(resizeScript, [](const std::string& error, const choc::value::ValueView&) {
+        if (!error.empty()) {
+          lattice::logDebug << "Resize event dispatch error: " << error;
+        }
+      });
+    }
+    return success;
+  }
+  return false;
 #else
   return webview != nullptr;
 #endif
