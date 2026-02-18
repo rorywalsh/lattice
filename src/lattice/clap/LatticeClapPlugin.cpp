@@ -5,6 +5,7 @@
 
 #if LATTICE_WINDOWS
 #include <windows.h>
+#include <iomanip>
 #elif LATTICE_MACOS
 extern "C" {
 bool attachViewToParent(void *childView,
@@ -308,9 +309,9 @@ bool LatticeClapPlugin::paramsTextToValue(clap_id paramId, const char *display,
   if (paramId > numParameters)
     return false;
 
-  const double value_ = strtod(display, nullptr);
+  const double parsedValue = strtod(display, nullptr);
 
-  *value = (value_);
+  *value = parsedValue;
 
   return true;
 }
@@ -734,6 +735,29 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                 return choc::value::Value(true);
               });
 
+#if LATTICE_WINDOWS
+      // Forward key events from the webview to the DAW host window.
+      // Called from JS: window.sendKeyEventToHost(msgType, keyCode)
+      // where msgType is WM_KEYDOWN (0x100), WM_KEYUP (0x101), etc.
+      // and keyCode is the Win32 virtual key code (matches e.keyCode in JS).
+      wv.bind("sendKeyEventToHost",
+              [this](const choc::value::ValueView &args) -> choc::value::Value {
+                if (!consumeKeypresses.load(std::memory_order_relaxed) && parentWindow) {
+                  if (args.isArray() && args.size() >= 2) {
+                    UINT msgType = static_cast<UINT>(args[0].getWithDefault<int64_t>(0));
+                    WPARAM vkCode = static_cast<WPARAM>(args[1].getWithDefault<int64_t>(0));
+                    HWND target = ::GetAncestor(parentWindow, GA_ROOT);
+                    if (!target) target = parentWindow;
+                    ::PostMessage(target, msgType, vkCode, 0);
+                    // lattice::logDebug << "KeyboardHandler: forwarding keyCode=" << vkCode
+                    //                   << " msg=0x" << std::hex << msgType
+                    //                   << " to DAW window=" << (void*)target;
+                  }
+                }
+                return choc::value::Value(true);
+              });
+#endif
+
       // Temporary override to handle synchronous calls before this->webview is
       // assigned
       auto originalSetHtml = processor.setWebViewHtml;
@@ -930,13 +954,6 @@ void LatticeClapPlugin::guiDestroy() noexcept {
   memoryQueue.sendToChild(message);
   usleep(50000);
 #else
-#if LATTICE_WINDOWS
-  // Clean up keyboard passthrough subclass
-  if (webview) {
-    auto* child = static_cast<HWND>(webview->getViewHandle());
-    lattice::WindowsKeyboardHandler::removeKeyboardPassthrough(child);
-  }
-#endif
   webview.reset();
   stopTimer();
 #endif
@@ -1048,11 +1065,8 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       ::SetParent(child, parent);
       ::ShowWindow(child, SW_SHOW);
 
-      // Install keyboard passthrough - by default all keys pass through to DAW
-      // Frontend can call consumeKeypresses(true) to capture keys in webview
-      parentWindow_ = parent;
-      lattice::WindowsKeyboardHandler::installKeyboardPassthrough(
-          child, parent, &consumeKeypresses_);
+      // Store parent window for key forwarding via sendKeyEventToHost JS binding
+      parentWindow = parent;
 
       return true;
     }
