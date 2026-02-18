@@ -722,6 +722,18 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                 return choc::value::Value(true);
               });
 
+      // Add JavaScript interface for keyboard passthrough control
+      // Call from frontend: window.consumeKeypresses(true) to capture keys in webview
+      // Call window.consumeKeypresses(false) to pass keys through to DAW
+      wv.bind("consumeKeypresses",
+              [this](const choc::value::ValueView &args) -> choc::value::Value {
+                if (args.isArray() && args.size() > 0) {
+                  bool consume = args[0].getWithDefault<bool>(false);
+                  setConsumeKeypresses(consume);
+                }
+                return choc::value::Value(true);
+              });
+
       // Temporary override to handle synchronous calls before this->webview is
       // assigned
       auto originalSetHtml = processor.setWebViewHtml;
@@ -918,6 +930,13 @@ void LatticeClapPlugin::guiDestroy() noexcept {
   memoryQueue.sendToChild(message);
   usleep(50000);
 #else
+#if LATTICE_WINDOWS
+  // Clean up keyboard passthrough subclass
+  if (webview) {
+    auto* child = static_cast<HWND>(webview->getViewHandle());
+    lattice::WindowsKeyboardHandler::removeKeyboardPassthrough(child);
+  }
+#endif
   webview.reset();
   stopTimer();
 #endif
@@ -1028,6 +1047,13 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       ::SetWindowLongPtrW(child, GWL_STYLE, WS_CHILD);
       ::SetParent(child, parent);
       ::ShowWindow(child, SW_SHOW);
+
+      // Install keyboard passthrough - by default all keys pass through to DAW
+      // Frontend can call consumeKeypresses(true) to capture keys in webview
+      parentWindow_ = parent;
+      lattice::WindowsKeyboardHandler::installKeyboardPassthrough(
+          child, parent, &consumeKeypresses_);
+
       return true;
     }
 #elif LATTICE_MACOS

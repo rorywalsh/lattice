@@ -148,6 +148,14 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif()
 
 # ======================================================================
+# Platform-specific link libraries required by lattice
+set(LATTICE_LINK_LIBS "")
+if(WIN32)
+    # comctl32 required for WindowsKeyboardHandler (SetWindowSubclass, etc.)
+    list(APPEND LATTICE_LINK_LIBS comctl32)
+endif()
+
+# ======================================================================
 function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
     # Define the output directories for each plugin type
     if (WIN32)

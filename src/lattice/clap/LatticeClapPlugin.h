@@ -2,6 +2,7 @@
 
 #include "../LatticeStructs.h"
 #include "../LatticeUtils.h"
+#include "KeyboardHandler.h"
 #include <deque>
 
 #include "choc/platform/choc_DisableAllWarnings.h"
@@ -97,6 +98,17 @@ public:
   // Main thread callback (fallback when timer is not supported)
   void onMainThread() noexcept override;
 
+  // Keyboard passthrough control
+  // By default, all keypresses pass through to the DAW
+  // Call setConsumeKeypresses(true) when the webview needs keyboard input (e.g., text fields)
+  void setConsumeKeypresses(bool consume) {
+    consumeKeypresses_.store(consume, std::memory_order_relaxed);
+  }
+
+  bool getConsumeKeypresses() const {
+    return consumeKeypresses_.load(std::memory_order_relaxed);
+  }
+
   moodycamel::ReaderWriterQueue<lattice::ParameterChange> parameterChanges;
   moodycamel::ReaderWriterQueue<lattice::OutputNoteEvent> outputNoteEvents;
   moodycamel::ReaderWriterQueue<lattice::RawMidiEvent> rawMidiEvents;
@@ -136,6 +148,14 @@ private:
 
   moodycamel::ReaderWriterQueue<std::string> webviewMessageQueue;
   std::atomic<bool> isShuttingDown{false};
+
+  // Keyboard handling
+  // By default false - keys pass through to DAW
+  // Set to true when webview needs keyboard input (text fields, etc.)
+  std::atomic<bool> consumeKeypresses_{false};
+#if LATTICE_WINDOWS
+  HWND parentWindow_ = nullptr;
+#endif
 };
 
 class LatticeProcessorPluginFactory {
