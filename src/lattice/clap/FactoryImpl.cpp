@@ -4,15 +4,29 @@
 
 #include "FactoryImpl.h"
 #include "../LatticeProcessor.h"
+#include "../LatticeUtils.h"
 #include "LatticeClapPlugin.h"
 #include "clapwrapper/auv2.h"
 #include <iostream>
 #include PLUGIN_INFO_HEADER  // Include the dynamically generated header
 
+#if __has_include(<ARA_API/ARACLAP.h>)
+#include <ARA_API/ARACLAP.h>
+#define LATTICE_HAS_ARA_CLAP 1
+#else
+#define LATTICE_HAS_ARA_CLAP 0
+#endif
+
+#if LATTICE_HAS_ARA_CLAP && defined(LATTICE_PLUGIN_PROVIDES_ARA_FACTORY)
+extern const ARA::ARAFactory* latticeGetAraFactory();
+#endif
+
 namespace impl
 {
-    bool init(const char* /*plugin_path*/)
+    bool init(const char* plugin_path)
     {
+        if (plugin_path && std::strlen(plugin_path) > 0)
+            lattice::File::setBinaryFilePathOverride(plugin_path);
         return true;
     }
 
@@ -55,6 +69,38 @@ namespace impl
         .create_plugin = createPluginInstance,
     };
 
+#if LATTICE_HAS_ARA_CLAP
+    uint32_t getAraFactoryCount(const clap_ara_factory* /*factory*/)
+    {
+#if defined(LATTICE_PLUGIN_PROVIDES_ARA_FACTORY)
+        return (latticeGetAraFactory() != nullptr) ? 1u : 0u;
+#else
+        return 0u;
+#endif
+    }
+
+    const ARA::ARAFactory* getAraFactory(const clap_ara_factory* /*factory*/, uint32_t index)
+    {
+#if defined(LATTICE_PLUGIN_PROVIDES_ARA_FACTORY)
+        if (index == 0)
+            return latticeGetAraFactory();
+#endif
+        return nullptr;
+    }
+
+    const char* getAraPluginId(const clap_ara_factory* /*factory*/, uint32_t /*index*/)
+    {
+        return getDescriptor()->id;
+    }
+
+    const clap_ara_factory araFactoryStruct =
+    {
+        .get_factory_count = getAraFactoryCount,
+        .get_ara_factory = getAraFactory,
+        .get_plugin_id = getAraPluginId,
+    };
+#endif
+
     bool clap_get_auv2_info(const clap_plugin_factory_as_auv2* /*factory*/, uint32_t index,
                                    clap_plugin_info_as_auv2_t *info)
     {
@@ -74,6 +120,13 @@ namespace impl
         if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID) == 0) {
             return &factoryStruct;
         }
+
+#if LATTICE_HAS_ARA_CLAP
+        if (strcmp(factory_id, CLAP_EXT_ARA_FACTORY) == 0)
+        {
+            return &araFactoryStruct;
+        }
+#endif
         
         if (strcmp(factory_id, CLAP_PLUGIN_FACTORY_INFO_AUV2) == 0)
         {

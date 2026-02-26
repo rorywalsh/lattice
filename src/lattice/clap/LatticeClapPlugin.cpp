@@ -18,6 +18,37 @@ bool resizeView(void *view, uint32_t width,
 #include <X11/Xlib.h>
 #endif
 
+#if LATTICE_HAS_ARA_CLAP
+namespace {
+const ARA::ARAFactory *lattice_ara_get_factory(const clap_plugin_t *plugin) {
+  auto *self = static_cast<const LatticeClapPlugin *>(plugin->plugin_data);
+  if (!self) {
+    return nullptr;
+  }
+  return self->getAraFactory();
+}
+
+const ARA::ARAPlugInExtensionInstance *
+lattice_ara_bind_to_document_controller(
+    const clap_plugin_t *plugin, ARA::ARADocumentControllerRef documentControllerRef,
+    ARA::ARAPlugInInstanceRoleFlags knownRoles,
+    ARA::ARAPlugInInstanceRoleFlags assignedRoles) {
+  auto *self = static_cast<const LatticeClapPlugin *>(plugin->plugin_data);
+  if (!self) {
+    return nullptr;
+  }
+
+  return self->bindToAraDocumentController(documentControllerRef, knownRoles,
+                                           assignedRoles);
+}
+
+const clap_ara_plugin_extension_t lattice_ara_plugin_extension = {
+    .get_factory = lattice_ara_get_factory,
+    .bind_to_document_controller = lattice_ara_bind_to_document_controller,
+};
+} // namespace
+#endif
+
 LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
                                      lattice::Processor &processor)
     : clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore,
@@ -34,20 +65,58 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 
   lattice::logDebug << "Logger initialized and ready!";
 
+  if (processor.getMountPoint().empty()) {
+    const auto binaryPath = lattice::File::getBinaryFileAndPath();
+    const auto binaryDir = lattice::File::getParentDirectory(binaryPath);
+    const auto binaryName = lattice::File::getBinaryFileName();
+    const auto binaryStem = std::filesystem::path(binaryName).stem().string();
+
+    const auto candidateA = lattice::File::joinPath(binaryDir, "Resources");
+    const auto candidateB = lattice::File::joinPath(binaryDir, binaryName, "Contents", "Resources");
+    const auto candidateC = lattice::File::joinPath(binaryDir, binaryStem, "Contents", "Resources");
+    const auto candidateD = lattice::File::joinPath(binaryDir, binaryName + "_resources", "Contents", "Resources");
+
+    auto hasIndex = [](const std::string &dir) {
+      return lattice::File::directoryExists(dir) &&
+             lattice::File::exists(lattice::File::joinPath(dir, "index.html"));
+    };
+
+    if (hasIndex(candidateA)) {
+      processor.setMountPoint(candidateA);
+    } else if (hasIndex(candidateB)) {
+      processor.setMountPoint(candidateB);
+    } else if (hasIndex(candidateC)) {
+      processor.setMountPoint(candidateC);
+    } else if (hasIndex(candidateD)) {
+      processor.setMountPoint(candidateD);
+    }
+
+    if (!processor.getMountPoint().empty()) {
+      lattice::logDebug << "Auto-set mount point to: " << processor.getMountPoint();
+    }
+  }
+
   auto functionName = processor.getWebViewSendFunctionName();
   processor.sendWebViewMessage = [this,
                                   functionName](const nlohmann::json &message) {
 #ifdef LATTICE_LINUX
 
 #else
-    if (webview) {
-      std::stringstream fullScript;
-      // Wrap call with function name - convert JSON to string
-      fullScript << functionName << "(" << message.dump() << ")";
-      webviewMessageQueue.enqueue(fullScript.str());
-    } else {
-      lattice::logDebug
-          << "Messages are being sent to webview before it is open...";
+    std::stringstream fullScript;
+    // Always enqueue; messages will be flushed when webview is available.
+    // If the JS callback isn't ready yet, queue inside the webview and flush later.
+    fullScript
+      << "(function(m){"
+      << "var fn='" << functionName << "';"
+      << "if(typeof window[fn]==='function'){window[fn](m);}"
+      << "else{window.__latticePendingMessages=window.__latticePendingMessages||[];window.__latticePendingMessages.push({fn:fn,msg:m});}"
+      << "})(" << message.dump() << ")";
+    webviewMessageQueue.enqueue(fullScript.str());
+
+    // Proactively request a main-thread callback so queued messages are
+    // processed even when audio process/timer callbacks are intermittent.
+    if (auto *host = _host.host()) {
+      host->request_callback(host);
     }
 #endif
   };
@@ -326,6 +395,39 @@ bool LatticeClapPlugin::activate(double sampleRate, uint32_t minFrameCount,
   return true;
 }
 
+const void *LatticeClapPlugin::extension(const char *id) noexcept {
+#if LATTICE_HAS_ARA_CLAP
+  if (!strcmp(id, CLAP_EXT_ARA_PLUGINEXTENSION) && hasAraSupport()) {
+    return &lattice_ara_plugin_extension;
+  }
+#endif
+
+  return clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore,
+                               clap::helpers::CheckingLevel::Maximal>::extension(id);
+}
+
+#if LATTICE_HAS_ARA_CLAP
+bool LatticeClapPlugin::hasAraSupport() const noexcept {
+  return getAraFactory() != nullptr;
+}
+
+const ARA::ARAFactory *LatticeClapPlugin::getAraFactory() const noexcept {
+  auto *factory = processor.getAraFactory();
+  return reinterpret_cast<const ARA::ARAFactory *>(factory);
+}
+
+const ARA::ARAPlugInExtensionInstance *
+LatticeClapPlugin::bindToAraDocumentController(
+    ARA::ARADocumentControllerRef documentControllerRef,
+    ARA::ARAPlugInInstanceRoleFlags knownRoles,
+    ARA::ARAPlugInInstanceRoleFlags assignedRoles) const noexcept {
+  auto *instance = processor.bindToAraDocumentController(
+      reinterpret_cast<void *>(documentControllerRef),
+      static_cast<uint32_t>(knownRoles), static_cast<uint32_t>(assignedRoles));
+  return reinterpret_cast<const ARA::ARAPlugInExtensionInstance *>(instance);
+}
+#endif
+
 clap_process_status
 LatticeClapPlugin::process(const clap_process *process) noexcept {
   if (process->audio_outputs_count <= 0)
@@ -401,13 +503,16 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
         std::stringstream fullScript;
         // Wrap call with function name
         auto functionName = processor.getWebViewSendFunctionName();
-        fullScript << functionName << "(" << j.dump() << ")";
+        fullScript
+          << "(function(m){"
+          << "var fn='" << functionName << "';"
+          << "if(typeof window[fn]==='function'){window[fn](m);}"
+          << "else{window.__latticePendingMessages=window.__latticePendingMessages||[];window.__latticePendingMessages.push({fn:fn,msg:m});}"
+          << "})(" << j.dump() << ")";
 #ifdef LATTICE_LINUX
 
 #else
-        if (webview) {
-          webviewMessageQueue.enqueue(fullScript.str());
-        }
+  webviewMessageQueue.enqueue(fullScript.str());
 #endif
         // Normalize the value before sending to processor.setParameter()
         // since setParameter expects normalized values [0-1]
@@ -880,6 +985,9 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
 
       processor.onWebViewIsReady();
 
+      // Flush any queued messages immediately once page load completes.
+      processWebviewMessages();
+
       // Restore original handler that uses this->webview
       processor.setWebViewHtml = originalSetHtml;
     };
@@ -1151,6 +1259,11 @@ void LatticeClapPlugin::onMainThread() noexcept {
 }
 
 void LatticeClapPlugin::processWebviewMessages() {
+#if !defined(LATTICE_LINUX)
+  if (!webview)
+    return;
+#endif
+
   std::string script;
 
   // Deduplicate messages by extracting paramIdx from parameterChange messages

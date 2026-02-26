@@ -26,6 +26,7 @@
 
 // Standard Library Headers
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 #include <unordered_map>
 #include <list>
@@ -40,9 +41,35 @@
 // Project Headers
 #include "LatticeStructs.h"
 
+namespace ARA {
+namespace PlugIn {
+class DocumentController;
+}
+}
 
 namespace lattice
 {
+    struct AraAnalysisJob
+    {
+        uint64_t jobId = 0;
+        std::string sourceId;
+        std::string regionId;
+        std::string analysisType;
+        double startSeconds = 0.0;
+        double durationSeconds = 0.0;
+        nlohmann::json metadata = {};
+    };
+
+    struct AraAnalysisResult
+    {
+        uint64_t jobId = 0;
+        std::string sourceId;
+        std::string regionId;
+        std::string analysisType;
+        bool success = false;
+        nlohmann::json payload = {};
+        std::string errorMessage;
+    };
 
 class Processor
 {
@@ -56,6 +83,11 @@ public:
         addParameterChange = [](lattice::ParameterChange) {};
         addOutputNoteEvent = [](lattice::OutputNoteEvent) {};
         addRawMidiEvent = [](lattice::RawMidiEvent) {};
+        araCallback = [](const ARA::PlugIn::DocumentController*, const nlohmann::json&) {};
+        enqueueAraAnalysisJob = [](const lattice::AraAnalysisJob&) {};
+        publishAraAnalysisResult = [](const lattice::AraAnalysisResult&) {};
+        getAraFactory = []() { return nullptr; };
+        bindToAraDocumentController = [](void*, uint32_t, uint32_t) { return static_cast<const void*>(nullptr); };
         requestGuiResize = [](uint32_t, uint32_t) { return false; };
         applyGuiResize = [](uint32_t, uint32_t) {};
     }
@@ -174,6 +206,11 @@ public:
     std::function<void(lattice::ParameterChange)> addParameterChange;
     std::function<void(lattice::OutputNoteEvent)> addOutputNoteEvent;  ///< Callback to output MIDI notes to host
     std::function<void(lattice::RawMidiEvent)> addRawMidiEvent;        ///< Callback to output raw MIDI to host
+    std::function<void(const ARA::PlugIn::DocumentController* documentController, const nlohmann::json& event)> araCallback; ///< Callback for ARA lifecycle/analysis events
+    std::function<void(const lattice::AraAnalysisJob&)> enqueueAraAnalysisJob; ///< Callback to enqueue ARA analysis jobs
+    std::function<void(const lattice::AraAnalysisResult&)> publishAraAnalysisResult; ///< Callback to publish completed ARA results
+    std::function<const void*()> getAraFactory; ///< Returns ARA factory pointer when ARA is supported
+    std::function<const void*(void* documentControllerRef, uint32_t knownRoles, uint32_t assignedRoles)> bindToAraDocumentController; ///< Binds plugin instance to an ARA document controller
     std::function<void(std::string)> setWebViewHtml;
     std::function<bool(uint32_t width, uint32_t height)> requestGuiResize;  ///< Callback to request GUI resize from host
     std::function<void(uint32_t width, uint32_t height)> applyGuiResize;    ///< Callback to actually resize the GUI (for hosts that don't call guiSetSize)

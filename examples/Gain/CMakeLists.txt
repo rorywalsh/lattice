@@ -10,6 +10,12 @@ set(SOURCE_FILES
 
 add_library(${PLUGIN_NAME}-impl STATIC ${SOURCE_FILES})
 
+set(PLUGIN_FEATURES
+    CLAP_PLUGIN_FEATURE_AUDIO_EFFECT
+    CLAP_PLUGIN_FEATURE_UTILITY
+    CLAP_PLUGIN_FEATURE_STEREO
+)
+
 # Generate plugin header - this will define the project properties
 generate_plugin_header(${PLUGIN_NAME}-impl
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}  # Output directory for the header
@@ -21,10 +27,8 @@ generate_plugin_header(${PLUGIN_NAME}-impl
     SUPPORT_URL "https://support.cabbageaudio.com"
     VERSION "1.0.0"
     DESCRIPTION "${PLUGIN_NAME} Plugin"
-    FEATURES 
-        CLAP_PLUGIN_FEATURE_AUDIO_EFFECT 
-        CLAP_PLUGIN_FEATURE_UTILITY 
-        CLAP_PLUGIN_FEATURE_STEREO
+    FEATURES
+        ${PLUGIN_FEATURES}
 )
 
 # Include Paths

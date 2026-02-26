@@ -37,6 +37,11 @@
 
 namespace lattice {
 
+namespace {
+std::mutex gBinaryPathOverrideMutex;
+std::string gBinaryPathOverride;
+}
+
 void setTimeout(std::function<void()> callback, int delayMilliseconds) {
     std::thread([callback, delayMilliseconds]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(delayMilliseconds));
@@ -103,6 +108,12 @@ void Logger::logMessage(const std::string& message)
 //========================================================================
 std::string File::getBinaryFileAndPath()
 {
+    {
+        std::lock_guard<std::mutex> lock(gBinaryPathOverrideMutex);
+        if (!gBinaryPathOverride.empty())
+            return gBinaryPathOverride;
+    }
+
 #if defined(_WIN32)
     return getWindowsBinaryPath();
 #elif defined(__APPLE__)
@@ -112,6 +123,12 @@ std::string File::getBinaryFileAndPath()
 #else
     return "";
 #endif
+}
+
+void File::setBinaryFilePathOverride(const std::string& binaryPath)
+{
+    std::lock_guard<std::mutex> lock(gBinaryPathOverrideMutex);
+    gBinaryPathOverride = File::formatPath(binaryPath);
 }
 
 bool File::exists(const std::string &filePath)

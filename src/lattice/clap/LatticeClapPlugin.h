@@ -10,6 +10,13 @@
 #include <clap/helpers/host-proxy.hxx>
 #include <clap/helpers/plugin.hxx>
 
+#if __has_include(<ARA_API/ARACLAP.h>)
+#include <ARA_API/ARACLAP.h>
+#define LATTICE_HAS_ARA_CLAP 1
+#else
+#define LATTICE_HAS_ARA_CLAP 0
+#endif
+
 #include "choc/platform/choc_ReenableAllWarnings.h"
 #include <readerwriterqueue.h>
 #if !defined(LATTICE_LINUX)
@@ -69,6 +76,7 @@ public:
   bool paramsTextToValue(clap_id paramId, const char *display,
                          double *value) noexcept override;
   bool activate(double sampleRate, uint32_t, uint32_t) noexcept override;
+  const void *extension(const char *id) noexcept override;
 
   // --- Helper functions ---
   void emitGestureBegin(clap_id paramId, const clap_output_events_t *outEvents);
@@ -111,6 +119,15 @@ public:
   moodycamel::ReaderWriterQueue<lattice::ParameterChange> parameterChanges;
   moodycamel::ReaderWriterQueue<lattice::OutputNoteEvent> outputNoteEvents;
   moodycamel::ReaderWriterQueue<lattice::RawMidiEvent> rawMidiEvents;
+
+#if LATTICE_HAS_ARA_CLAP
+  bool hasAraSupport() const noexcept;
+  const ARA::ARAFactory *getAraFactory() const noexcept;
+  const ARA::ARAPlugInExtensionInstance *bindToAraDocumentController(
+      ARA::ARADocumentControllerRef documentControllerRef,
+      ARA::ARAPlugInInstanceRoleFlags knownRoles,
+      ARA::ARAPlugInInstanceRoleFlags assignedRoles) const noexcept;
+#endif
 
 private:
   lattice::Processor &processor; // reference to processor

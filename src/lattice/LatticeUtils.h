@@ -282,6 +282,9 @@ class File
     // Retrieves the path to the current binary
     static std::string getBinaryFileAndPath();
 
+    // Allows plugin entry points to provide the authoritative binary path.
+    static void setBinaryFilePathOverride(const std::string& binaryPath);
+
     // Checks if a file/folder exists at the given path
     static bool exists(const std::string &filePath);
 

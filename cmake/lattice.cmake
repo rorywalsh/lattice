@@ -140,6 +140,24 @@ set(LATTICE_INCLUDE_DIRS
     ${readerwriterqueue_SOURCE_DIR}
 )
 
+set(LATTICE_ARA_LIBRARY_SOURCE_FILES)
+
+if(LATTICE_ENABLE_ARA)
+    if(LATTICE_ARA_SDK_DIR AND EXISTS "${LATTICE_ARA_SDK_DIR}/ARA_API/ARACLAP.h")
+        list(APPEND LATTICE_INCLUDE_DIRS ${LATTICE_ARA_SDK_DIR})
+        list(APPEND LATTICE_ARA_LIBRARY_SOURCE_FILES
+            "${LATTICE_ARA_SDK_DIR}/ARA_Library/Debug/ARADebug.c"
+            "${LATTICE_ARA_SDK_DIR}/ARA_Library/Utilities/ARAChannelFormat.cpp"
+            "${LATTICE_ARA_SDK_DIR}/ARA_Library/Utilities/ARAPitchInterpretation.cpp"
+            "${LATTICE_ARA_SDK_DIR}/ARA_Library/Dispatch/ARAPlugInDispatch.cpp"
+            "${LATTICE_ARA_SDK_DIR}/ARA_Library/PlugIn/ARAPlug.cpp"
+        )
+        message(STATUS "Lattice ARA scaffolding enabled using SDK at: ${LATTICE_ARA_SDK_DIR}")
+    else()
+        message(WARNING "LATTICE_ENABLE_ARA is ON but LATTICE_ARA_SDK_DIR is not valid. ARA headers will not be available.")
+    endif()
+endif()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GTK REQUIRED gtk+-3.0 webkit2gtk-4.1)
@@ -172,6 +190,14 @@ function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
     set(RESOURCE_DIR_VST3 ${PLUGIN_BUNDLE_DIR_VST3}/Contents/Resources)
     set(RESOURCE_DIR_CLAP ${PLUGIN_BUNDLE_DIR_CLAP}/Contents/Resources)
 
+    if (WIN32)
+        set(RESOURCE_DIR_VST3_WIN ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/VST3/${CMAKE_CFG_INTDIR}/Resources)
+        set(RESOURCE_DIR_CLAP_WIN ${CMAKE_BINARY_DIR}/${PLUGIN_NAME}_assets/CLAP/${CMAKE_CFG_INTDIR}/Resources)
+    else()
+        set(RESOURCE_DIR_VST3_WIN ${RESOURCE_DIR_VST3})
+        set(RESOURCE_DIR_CLAP_WIN ${RESOURCE_DIR_CLAP})
+    endif()
+
     if(TARGET ${PLUGIN_NAME}_standalone)
         if (WIN32)
             set(RESOURCE_DIR_STANDALONE ${PLUGIN_BUNDLE_DIR_STANDALONE}/Resources)
@@ -190,6 +216,12 @@ function(COPY_PLUGIN_RESOURCES PLUGIN_NAME SOURCE_RESOURCE_DIR)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_BUNDLE_DIR_CLAP}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_CLAP}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR_CLAP}
+
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_CLAP_WIN}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR_CLAP_WIN}
+
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_VST3_WIN}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_RESOURCE_DIR} ${RESOURCE_DIR_VST3_WIN}
 
         COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_BUNDLE_DIR_STANDALONE}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_DIR_STANDALONE}
