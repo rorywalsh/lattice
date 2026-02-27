@@ -270,6 +270,7 @@ public:
     /// Events are queued until the webview is ready, then forwarded on process().
     void sendAraEvent(const nlohmann::json& event)
     {
+        lattice::logDebug << "sendAraEvent: queuing command='" << event.value("command", "?") << "'";
         std::lock_guard<std::mutex> lock(araQueueMutex);
         araQueue.push_back(event);
     }
@@ -290,6 +291,7 @@ public:
             pending.swap(araQueue);
         }
 
+        lattice::logDebug << "flushAraEvents: dispatching " << pending.size() << " event(s) to webview";
         for (const auto& ev : pending)
             sendWebViewMessage(ev);
     }
@@ -316,12 +318,6 @@ public:
 
         const auto& regions = renderer->getPlaybackRegions();
 
-        // No regions have been assigned yet (early ARA lifecycle, e.g. during
-        // didEnableAudioSourceSamplesAccess before the session is fully wired).
-        // Assume the source belongs to us so the event is not silently dropped.
-        if (regions.empty())
-            return true;
-
         for (const auto* region : regions)
         {
             if (region->getAudioModification()->getAudioSource() == source)
@@ -341,8 +337,14 @@ public:
 
     void onWebViewIsReady() override
     {
+        // Only set the flag here. Do NOT call flushAraEvents() directly —
+        // onWebViewIsReady() runs on the main thread while the idle thread
+        // is already calling flushAraEvents() concurrently. Both paths call
+        // sendWebViewMessage(), which writes to a SPSC queue; two concurrent
+        // writers corrupt it and crash the WebKit process.
+        // The idle thread's next flushAraEvents() cycle (≤16ms) will drain
+        // any queued events now that webViewReady is true.
         webViewReady.store(true, std::memory_order_release);
-        flushAraEvents();
     }
 
 protected:
