@@ -55,6 +55,18 @@ FetchContent_Declare(
     GIT_TAG ab2082837bda45e8a1a2d6934b211212ae3e2d1b
 )
 
+if(LATTICE_ENABLE_ARA)
+    FetchContent_Declare(
+        ara_sdk
+        GIT_REPOSITORY https://github.com/Celemony/ARA_SDK.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(ara_sdk)
+    if(NOT LATTICE_ARA_SDK_DIR AND EXISTS "${ara_sdk_SOURCE_DIR}/ARA_API")
+        set(LATTICE_ARA_SDK_DIR "${ara_sdk_SOURCE_DIR}" CACHE PATH "Path to ARA SDK root containing ARA_API" FORCE)
+    endif()
+endif()
+
 # Make all dependencies available except aurora
 FetchContent_MakeAvailable(clap clap-helpers clap-wrapper choc json cppcodec readerwriterqueue)
 
