@@ -160,10 +160,9 @@ void GainARAProcessor::process(float** inputs, float** outputs, std::size_t bloc
 void GainARAProcessor::araAudioSourceContentUpdated(ARA::PlugIn::AudioSource* source,
                                                      ARA::ContentUpdateScopes scopes)
 {
-    // The DC broadcasts this to every bound instance for every source in the session.
-    // Only analyse the source if it actually belongs to a region this instance renders.
-    if (!isMyAudioSource(source))
-        return;
+    lattice::logDebug << "araAudioSourceContentUpdated: source=" << (void*)source
+                      << " sampleAccessEnabled=" << source->isSampleAccessEnabled()
+                      << " affectsSamples=" << scopes.affectSamples();
 
     if (source->isSampleAccessEnabled() && scopes.affectSamples())
         sendAraEvent(createDiagnosticsEvent("doUpdateAudioSourceContent", analyzeAudioSource(source)));
@@ -171,9 +170,9 @@ void GainARAProcessor::araAudioSourceContentUpdated(ARA::PlugIn::AudioSource* so
 
 void GainARAProcessor::araDidEnableSamplesAccess(ARA::PlugIn::AudioSource* source, bool enable)
 {
-    // Same reasoning: skip sources that are owned by other instances.
-    if (!isMyAudioSource(source))
-        return;
+    lattice::logDebug << "araDidEnableSamplesAccess: source=" << (void*)source
+                      << " enable=" << enable
+                      << " sampleAccessEnabled=" << source->isSampleAccessEnabled();
 
     if (enable)
         sendAraEvent(createDiagnosticsEvent("didEnableAudioSourceSamplesAccess", analyzeAudioSource(source)));

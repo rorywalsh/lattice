@@ -314,7 +314,15 @@ public:
         if (renderer == nullptr || source == nullptr)
             return false;
 
-        for (const auto* region : renderer->getPlaybackRegions())
+        const auto& regions = renderer->getPlaybackRegions();
+
+        // No regions have been assigned yet (early ARA lifecycle, e.g. during
+        // didEnableAudioSourceSamplesAccess before the session is fully wired).
+        // Assume the source belongs to us so the event is not silently dropped.
+        if (regions.empty())
+            return true;
+
+        for (const auto* region : regions)
         {
             if (region->getAudioModification()->getAudioSource() == source)
                 return true;
