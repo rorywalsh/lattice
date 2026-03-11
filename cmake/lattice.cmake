@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 function(generate_plugin_header TARGET)
     set(oneValueArgs OUTPUT_DIRECTORY UNIQUE_ID NAME VENDOR URL MANUAL_URL SUPPORT_URL VERSION DESCRIPTION)
     set(multiValueArgs FEATURES)  # FEATURES can take multiple values
