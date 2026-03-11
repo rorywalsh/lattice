@@ -124,7 +124,7 @@ if (APPLE)
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/clap/platform/MacParent.mm")
 elseif(LINUX)
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/LatticeMemoryQueue.h")
-    add_subdirectory("${LATTICE_ROOT_DIR}/src/lattice/LinuxWebviewProcess")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../src/lattice/LinuxWebviewProcess")
 endif()
 
 # ======================================================================
