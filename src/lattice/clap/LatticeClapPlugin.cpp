@@ -4,8 +4,8 @@
 #include PLUGIN_INFO_HEADER // Include the dynamically generated header
 
 #if LATTICE_WINDOWS
-#include <windows.h>
 #include <iomanip>
+#include <windows.h>
 #elif LATTICE_MACOS
 extern "C" {
 bool attachViewToParent(void *childView,
@@ -28,9 +28,9 @@ const ARA::ARAFactory *lattice_ara_get_factory(const clap_plugin_t *plugin) {
   return self->getAraFactory();
 }
 
-const ARA::ARAPlugInExtensionInstance *
-lattice_ara_bind_to_document_controller(
-    const clap_plugin_t *plugin, ARA::ARADocumentControllerRef documentControllerRef,
+const ARA::ARAPlugInExtensionInstance *lattice_ara_bind_to_document_controller(
+    const clap_plugin_t *plugin,
+    ARA::ARADocumentControllerRef documentControllerRef,
     ARA::ARAPlugInInstanceRoleFlags knownRoles,
     ARA::ARAPlugInInstanceRoleFlags assignedRoles) {
   auto *self = static_cast<const LatticeClapPlugin *>(plugin->plugin_data);
@@ -72,9 +72,12 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
     const auto binaryStem = std::filesystem::path(binaryName).stem().string();
 
     const auto candidateA = lattice::File::joinPath(binaryDir, "Resources");
-    const auto candidateB = lattice::File::joinPath(binaryDir, binaryName, "Contents", "Resources");
-    const auto candidateC = lattice::File::joinPath(binaryDir, binaryStem, "Contents", "Resources");
-    const auto candidateD = lattice::File::joinPath(binaryDir, binaryName + "_resources", "Contents", "Resources");
+    const auto candidateB =
+        lattice::File::joinPath(binaryDir, binaryName, "Contents", "Resources");
+    const auto candidateC =
+        lattice::File::joinPath(binaryDir, binaryStem, "Contents", "Resources");
+    const auto candidateD = lattice::File::joinPath(
+        binaryDir, binaryName + "_resources", "Contents", "Resources");
 
     auto hasIndex = [](const std::string &dir) {
       return lattice::File::directoryExists(dir) &&
@@ -92,7 +95,8 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
     }
 
     if (!processor.getMountPoint().empty()) {
-      lattice::logDebug << "Auto-set mount point to: " << processor.getMountPoint();
+      lattice::logDebug << "Auto-set mount point to: "
+                        << processor.getMountPoint();
     }
   }
 
@@ -104,13 +108,15 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 #else
     std::stringstream fullScript;
     // Always enqueue; messages will be flushed when webview is available.
-    // If the JS callback isn't ready yet, queue inside the webview and flush later.
-    fullScript
-      << "(function(m){"
-      << "var fn='" << functionName << "';"
-      << "if(typeof window[fn]==='function'){window[fn](m);}"
-      << "else{window.__latticePendingMessages=window.__latticePendingMessages||[];window.__latticePendingMessages.push({fn:fn,msg:m});}"
-      << "})(" << message.dump() << ")";
+    // If the JS callback isn't ready yet, queue inside the webview and flush
+    // later.
+    fullScript << "(function(m){"
+               << "var fn='" << functionName << "';"
+               << "if(typeof window[fn]==='function'){window[fn](m);}"
+               << "else{window.__latticePendingMessages=window.__"
+                  "latticePendingMessages||[];window.__latticePendingMessages."
+                  "push({fn:fn,msg:m});}"
+               << "})(" << message.dump() << ")";
     webviewMessageQueue.enqueue(fullScript.str());
 
     // Proactively request a main-thread callback so queued messages are
@@ -166,7 +172,8 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
 
   processor.applyGuiResize = [this](uint32_t width, uint32_t height) {
     // Directly call guiSetSize to resize the webview
-    // This is needed for hosts that accept resize but don't call guiSetSize back
+    // This is needed for hosts that accept resize but don't call guiSetSize
+    // back
     guiSetSize(width, height);
   };
 
@@ -352,7 +359,8 @@ bool LatticeClapPlugin::paramsValue(clap_id paramId, double *value) noexcept {
 
   // Return the parameter's actual value in its defined range [min, max]
   // Note: Parameter.value should be stored denormalized (in actual range)
-  *value = processor.getParameter(paramId).fromNormalised(processor.getParameters()[paramId].value);
+  *value = processor.getParameter(paramId).fromNormalised(
+      processor.getParameters()[paramId].value);
   return true;
 }
 
@@ -402,8 +410,9 @@ const void *LatticeClapPlugin::extension(const char *id) noexcept {
   }
 #endif
 
-  return clap::helpers::Plugin<clap::helpers::MisbehaviourHandler::Ignore,
-                               clap::helpers::CheckingLevel::Maximal>::extension(id);
+  return clap::helpers::Plugin<
+      clap::helpers::MisbehaviourHandler::Ignore,
+      clap::helpers::CheckingLevel::Maximal>::extension(id);
 }
 
 #if LATTICE_HAS_ARA_CLAP
@@ -496,27 +505,30 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
         nlohmann::json j, h;
         j["command"] = "parameterChange";
         h["paramIdx"] = p->param_id;
-        // p->value is now in actual range (denormalized) since we report actual min/max to CLAP
+        // p->value is now in actual range (denormalized) since we report actual
+        // min/max to CLAP
         h["value"] = p->value;
         j["data"] = h;
 
         std::stringstream fullScript;
         // Wrap call with function name
         auto functionName = processor.getWebViewSendFunctionName();
-        fullScript
-          << "(function(m){"
-          << "var fn='" << functionName << "';"
-          << "if(typeof window[fn]==='function'){window[fn](m);}"
-          << "else{window.__latticePendingMessages=window.__latticePendingMessages||[];window.__latticePendingMessages.push({fn:fn,msg:m});}"
-          << "})(" << j.dump() << ")";
+        fullScript << "(function(m){"
+                   << "var fn='" << functionName << "';"
+                   << "if(typeof window[fn]==='function'){window[fn](m);}"
+                   << "else{window.__latticePendingMessages=window.__"
+                      "latticePendingMessages||[];window.__"
+                      "latticePendingMessages.push({fn:fn,msg:m});}"
+                   << "})(" << j.dump() << ")";
 #ifdef LATTICE_LINUX
 
 #else
-  webviewMessageQueue.enqueue(fullScript.str());
+        webviewMessageQueue.enqueue(fullScript.str());
 #endif
         // Normalize the value before sending to processor.setParameter()
         // since setParameter expects normalized values [0-1]
-        double normalizedValue = processor.getParameter(p->param_id).toNormalised(p->value);
+        double normalizedValue =
+            processor.getParameter(p->param_id).toNormalised(p->value);
         sendParameterValueToHost(p->param_id, normalizedValue);
       }
     } else if (nextEvent->type == CLAP_EVENT_NOTE_ON ||
@@ -559,7 +571,8 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
     while (parameterChanges.try_dequeue(change)) {
       // ParameterChange.value is always normalized [0-1]
       // Convert to actual range before sending to CLAP host
-      double denormalizedValue = processor.getParameter(change.paramId).fromNormalised(change.value);
+      double denormalizedValue =
+          processor.getParameter(change.paramId).fromNormalised(change.value);
 
       switch (change.type) {
       case lattice::ParamChangeType::GestureBegin:
@@ -755,11 +768,11 @@ void LatticeClapPlugin::stopTimer() {
 //========================================================================================
 // Temporary file creation for Linux
 //========================================================================================
-std::string LatticeClapPlugin::createTempFile(const char * /*path*/) {
+std::string LatticeClapPlugin::createTempFile(const char *path) {
 #ifdef LATTICE_LINUX
   // Allocate memory for the temporary file name
   char *temp_filename =
-      new char[strlen(patt) + 1]; // +1 for the null terminator
+      new char[strlen(path) + 1]; // +1 for the null terminator
   std::strcpy(temp_filename, path);
 
   // Create a temporary file
@@ -829,8 +842,9 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
               });
 
       // Add JavaScript interface for keyboard passthrough control
-      // Call from frontend: window.consumeKeypresses(true) to capture keys in webview
-      // Call window.consumeKeypresses(false) to pass keys through to DAW
+      // Call from frontend: window.consumeKeypresses(true) to capture keys in
+      // webview Call window.consumeKeypresses(false) to pass keys through to
+      // DAW
       wv.bind("consumeKeypresses",
               [this](const choc::value::ValueView &args) -> choc::value::Value {
                 if (args.isArray() && args.size() > 0) {
@@ -847,14 +861,19 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
       // and keyCode is the Win32 virtual key code (matches e.keyCode in JS).
       wv.bind("sendKeyEventToHost",
               [this](const choc::value::ValueView &args) -> choc::value::Value {
-                if (!consumeKeypresses.load(std::memory_order_relaxed) && parentWindow) {
+                if (!consumeKeypresses.load(std::memory_order_relaxed) &&
+                    parentWindow) {
                   if (args.isArray() && args.size() >= 2) {
-                    UINT msgType = static_cast<UINT>(args[0].getWithDefault<int64_t>(0));
-                    WPARAM vkCode = static_cast<WPARAM>(args[1].getWithDefault<int64_t>(0));
+                    UINT msgType =
+                        static_cast<UINT>(args[0].getWithDefault<int64_t>(0));
+                    WPARAM vkCode =
+                        static_cast<WPARAM>(args[1].getWithDefault<int64_t>(0));
                     HWND target = ::GetAncestor(parentWindow, GA_ROOT);
-                    if (!target) target = parentWindow;
+                    if (!target)
+                      target = parentWindow;
                     ::PostMessage(target, msgType, vkCode, 0);
-                    // lattice::logDebug << "KeyboardHandler: forwarding keyCode=" << vkCode
+                    // lattice::logDebug << "KeyboardHandler: forwarding
+                    // keyCode=" << vkCode
                     //                   << " msg=0x" << std::hex << msgType
                     //                   << " to DAW window=" << (void*)target;
                   }
@@ -1089,11 +1108,13 @@ bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept {
 
     // Trigger a resize event in JavaScript so the page knows to reflow
     std::string resizeScript = "window.dispatchEvent(new Event('resize'));";
-    webview->evaluateJavascript(resizeScript, [](const std::string& error, const choc::value::ValueView&) {
-      if (!error.empty()) {
-        lattice::logDebug << "Resize event dispatch error: " << error;
-      }
-    });
+    webview->evaluateJavascript(
+        resizeScript,
+        [](const std::string &error, const choc::value::ValueView &) {
+          if (!error.empty()) {
+            lattice::logDebug << "Resize event dispatch error: " << error;
+          }
+        });
 
     return true;
   }
@@ -1110,11 +1131,13 @@ bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept {
       // Trigger a resize event in JavaScript so the page knows to reflow
       // This allows CSS and JavaScript to respond to the new viewport size
       std::string resizeScript = "window.dispatchEvent(new Event('resize'));";
-      webview->evaluateJavascript(resizeScript, [](const std::string& error, const choc::value::ValueView&) {
-        if (!error.empty()) {
-          lattice::logDebug << "Resize event dispatch error: " << error;
-        }
-      });
+      webview->evaluateJavascript(
+          resizeScript,
+          [](const std::string &error, const choc::value::ValueView &) {
+            if (!error.empty()) {
+              lattice::logDebug << "Resize event dispatch error: " << error;
+            }
+          });
     }
     return success;
   }
@@ -1173,7 +1196,8 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       ::SetParent(child, parent);
       ::ShowWindow(child, SW_SHOW);
 
-      // Store parent window for key forwarding via sendKeyEventToHost JS binding
+      // Store parent window for key forwarding via sendKeyEventToHost JS
+      // binding
       parentWindow = parent;
 
       return true;

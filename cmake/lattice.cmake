@@ -1,5 +1,3 @@
-include_guard(GLOBAL)
-
 function(generate_plugin_header TARGET)
     set(oneValueArgs OUTPUT_DIRECTORY UNIQUE_ID NAME VENDOR URL MANUAL_URL SUPPORT_URL VERSION DESCRIPTION)
     set(multiValueArgs FEATURES)  # FEATURES can take multiple values
@@ -126,7 +124,9 @@ if (APPLE)
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/clap/platform/MacParent.mm")
 elseif(LINUX)
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/LatticeMemoryQueue.h")
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../src/lattice/LinuxWebviewProcess")
+    if(NOT TARGET WebViewProcess)
+        add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../src/lattice/LinuxWebviewProcess")
+    endif()
 endif()
 
 # ======================================================================
