@@ -101,9 +101,15 @@ inline const clap_plugin_descriptor* getDescriptor() {
     target_include_directories(${TARGET} PRIVATE ${PLUGIN_INFO_OUTPUT_DIRECTORY})
 
     # Define a preprocessor macro for the header name
-    target_compile_definitions(${TARGET} PRIVATE 
+    target_compile_definitions(${TARGET} PRIVATE
         PLUGIN_INFO_HEADER="${HEADER_NAME}"
     )
+
+    # On Linux, WebViewProcess must be built first so it can generate
+    # webview_binary.h before LatticeClapPlugin.cpp is compiled
+    if(LINUX AND TARGET WebViewProcess)
+        add_dependencies(${TARGET} WebViewProcess)
+    endif()
 endfunction()
 
 # ==========================================================================
