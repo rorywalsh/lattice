@@ -59,7 +59,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
       ,
       instanceMap(
           lattice::SharedMemoryQueue::CreateDefaultInstanceTracker(true)),
-      memoryQueue("/lattice_" + instanceMap.getInstanceId(), 100, 1024)
+      memoryQueue("/lattice_" + instanceMap.getInstanceId(), 100, 65536)
 #endif
 {
 
@@ -103,13 +103,7 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
   auto functionName = processor.getWebViewSendFunctionName();
   processor.sendWebViewMessage = [this,
                                   functionName](const nlohmann::json &message) {
-#ifdef LATTICE_LINUX
-
-#else
     std::stringstream fullScript;
-    // Always enqueue; messages will be flushed when webview is available.
-    // If the JS callback isn't ready yet, queue inside the webview and flush
-    // later.
     fullScript << "(function(m){"
                << "var fn='" << functionName << "';"
                << "if(typeof window[fn]==='function'){window[fn](m);}"
@@ -124,7 +118,6 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
     if (auto *host = _host.host()) {
       host->request_callback(host);
     }
-#endif
   };
 
   processor.setWebViewHtml = [this](const std::string &html) {
@@ -820,6 +813,11 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                                   bool /*isFloating*/) noexcept {
 #ifdef LATTICE_LINUX
   guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
+  auto resourceDir = processor.getMountPoint().empty()
+                         ? lattice::File::getResourceDirFromBundle()
+                         : processor.getMountPoint();
+  htmlMntPoint = "file://" + lattice::File::joinPath(resourceDir, "index.html");
+  startTimer();
   return true;
 #else
   guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
@@ -1288,6 +1286,20 @@ void LatticeClapPlugin::processWebviewMessages() {
     return;
 #endif
 
+#ifdef LATTICE_LINUX
+  // Read messages sent from the webview JS (child → host direction)
+  nlohmann::json incomingMsg;
+  while (memoryQueue.receiveFromChild(incomingMsg)) {
+    try {
+      processor.onMessageFromWebView(incomingMsg);
+    } catch (const std::exception &e) {
+      lattice::logError << "Exception in onMessageFromWebView: " << e.what();
+    } catch (...) {
+      lattice::logError << "Unknown exception in onMessageFromWebView";
+    }
+  }
+#endif
+
   std::string script;
 
   // Deduplicate messages by extracting paramIdx from parameterChange messages
@@ -1332,6 +1344,12 @@ void LatticeClapPlugin::processWebviewMessages() {
 
   // Process non-parameterChange messages first
   for (const auto &msg : otherMessages) {
+#ifdef LATTICE_LINUX
+    nlohmann::json linuxMsg;
+    linuxMsg["command"] = "EvaluateJS";
+    linuxMsg["data"] = msg;
+    memoryQueue.sendToChild(linuxMsg);
+#else
     webview->evaluateJavascript(
         msg, [](const std::string &error,
                 const choc::value::ValueView & /*result*/) {
@@ -1339,10 +1357,17 @@ void LatticeClapPlugin::processWebviewMessages() {
             lattice::logDebug << "JavaScript Error: " << error;
           }
         });
+#endif
   }
 
   // Then process only the latest parameterChange for each parameter
   for (const auto &[paramIdx, msg] : latestParamChanges) {
+#ifdef LATTICE_LINUX
+    nlohmann::json linuxMsg;
+    linuxMsg["command"] = "EvaluateJS";
+    linuxMsg["data"] = msg;
+    memoryQueue.sendToChild(linuxMsg);
+#else
     webview->evaluateJavascript(
         msg, [](const std::string &error,
                 const choc::value::ValueView & /*result*/) {
@@ -1350,5 +1375,6 @@ void LatticeClapPlugin::processWebviewMessages() {
             lattice::logDebug << "JavaScript Error: " << error;
           }
         });
+#endif
   }
 }
