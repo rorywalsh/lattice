@@ -14,11 +14,7 @@ pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 MultiChannelProcessor::MultiChannelProcessor()
     : Processor()
 {
-    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
-    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
-
-    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
-    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+    addAudioPortsConfig("Dual Stereo", "2+2", "2+2");
 
     addParameter({"Gain 1", 0, .8, .2, 0.01, 1});
     addParameter({"Gain 2", 0, .8, .2, 0.01, 1});

@@ -70,6 +70,12 @@ public:
   bool implementsNotePorts() const noexcept override { return true; }
   bool implementsAudioPorts() const noexcept override { return true; }
 
+  // Audio ports config extension — lets the host offer the user a channel-layout picker
+  bool implementsAudioPortsConfig() const noexcept override { return true; }
+  uint32_t audioPortsConfigCount() const noexcept override;
+  bool audioPortsGetConfig(uint32_t index, clap_audio_ports_config *config) const noexcept override;
+  bool audioPortsSetConfig(clap_id configId) noexcept override;
+
   bool paramsValue(clap_id paramId, double *value) noexcept override;
   bool paramsValueToText(clap_id paramId, double value, char *display,
                          uint32_t size) noexcept override;

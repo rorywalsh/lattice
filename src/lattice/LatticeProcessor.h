@@ -33,6 +33,7 @@
 #include <deque>
 #include <iostream>
 #include <functional>
+#include <sstream>
 
 // External Library Headers
 #include <lattice/clap/LatticeClapPlugin.h>
@@ -148,11 +149,51 @@ public:
     
     // ============= Channel Configuration =================
     lattice::ChannelConfig getChannelConfig() const { return channelConfig; }
-    void addInputBus(const std::string &name, int channels, lattice::ChannelLayout grouping) {
-        channelConfig.addInputBus(name, channels, grouping);
+
+    // Declare a named audio port configuration. Call once per supported layout from
+    // the processor constructor. The first call becomes the default (ID 0).
+    //
+    // `ins` / `outs` are '+'-separated channel counts, one number per bus.
+    //   "2"     → single stereo bus
+    //   "2+1"   → main stereo bus + mono sidechain bus
+    //   "2+2"   → two stereo buses
+    void addAudioPortsConfig(const std::string& name, const std::string& ins, const std::string& outs)
+    {
+        auto parseCounts = [](const std::string& s) {
+            std::vector<int> counts;
+            std::istringstream ss(s);
+            std::string token;
+            while (std::getline(ss, token, '+'))
+                if (!token.empty()) counts.push_back(std::stoi(token));
+            return counts;
+        };
+
+        lattice::AudioPortsConfig cfg;
+        cfg.id   = static_cast<uint32_t>(channelConfig.configs.size());
+        cfg.name = name;
+
+        auto inCounts = parseCounts(ins);
+        for (size_t i = 0; i < inCounts.size(); ++i)
+            cfg.inputBuses.emplace_back("Input Bus " + std::to_string(i), inCounts[i]);
+
+        auto outCounts = parseCounts(outs);
+        for (size_t i = 0; i < outCounts.size(); ++i)
+            cfg.outputBuses.emplace_back("Output Bus " + std::to_string(i), outCounts[i]);
+
+        channelConfig.configs.push_back(std::move(cfg));
     }
-    void addOutputBus(const std::string& name, int channels, lattice::ChannelLayout grouping) {
-        channelConfig.addOutputBus(name, channels, grouping);
+
+    // Called by the CLAP backend when the host selects a different port config.
+    void selectAudioPortsConfig(uint32_t id)
+    {
+        for (uint32_t i = 0; i < channelConfig.configs.size(); ++i)
+        {
+            if (channelConfig.configs[i].id == id)
+            {
+                channelConfig.activeConfigIndex = i;
+                return;
+            }
+        }
     }
     
     // ============= Note Event Handling =================

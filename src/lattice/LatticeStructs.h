@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include "LatticeUtils.h"
 
@@ -191,91 +192,64 @@ namespace lattice {
         }
     };
 
-    // Enum representing different channel layouts for an audio bus
-    enum class ChannelLayout : int
-    {
-        Mono,   ///< Single-channel (1 channel)
-        Stereo  ///< Two-channel (Left/Right)
-    };
-
-    // Represents an audio bus (group of channels).
+    // Represents a single port (group of channels) within an audio configuration.
     struct AudioBus
     {
-        std::string busName;       ///< Name of the bus
-        int numChannels;        ///< Number of channels in the bus
-        ChannelLayout layout;   ///< Layout of the channels
+        std::string busName;  ///< Human-readable port name
+        int numChannels;      ///< Number of channels in this port
 
-        // Constructor
-        AudioBus(const std::string& name, int channels, ChannelLayout busLayout)
-            : busName(name), numChannels(channels), layout(busLayout) {}
+        AudioBus(const std::string& name, int channels)
+            : busName(name), numChannels(channels) {}
     };
 
+    // A named audio port configuration advertised to the host.
+    // The host displays `name` in its channel-config picker; on selection it sends
+    // `id` back via audioPortsSetConfig(). ID == position in the configs vector.
+    struct AudioPortsConfig
+    {
+        uint32_t             id = 0;   ///< Stable ID round-tripped by the host
+        std::string          name;     ///< Label shown in the DAW UI
+        std::vector<AudioBus> inputBuses;
+        std::vector<AudioBus> outputBuses;
+    };
 
-    // Manages input and output audio bus configurations.
-    struct ChannelConfig {
-        std::vector<AudioBus> inputBuses;  ///< List of input buses
-        std::vector<AudioBus> outputBuses; ///< List of output buses
+    // Manages the set of named audio port configurations and which one is currently active.
+    struct ChannelConfig
+    {
+        std::vector<AudioPortsConfig> configs;  ///< All declared configs; index == id
+        uint32_t activeConfigIndex = 0;         ///< Currently selected config
 
-        // Adds an input bus
-        void addInputBus(const std::string &name, int numChannels, ChannelLayout layout)
-        {
-            inputBuses.emplace_back(name + std::to_string(inputBuses.size()), numChannels, layout);
-        }
+        // Query helpers — all read from the active config.
+        size_t getNumInputBuses()  const { return active().inputBuses.size(); }
+        size_t getNumOutputBuses() const { return active().outputBuses.size(); }
 
-        // Adds an output bus
-        void addOutputBus(const std::string &name, int numChannels, ChannelLayout layout)
-        {
-            outputBuses.emplace_back(name + std::to_string(outputBuses.size()), numChannels, layout);
-        }
+        int getNumInputChannels(int busIndex)  const { return active().inputBuses[busIndex].numChannels; }
+        int getNumOutputChannels(int busIndex) const { return active().outputBuses[busIndex].numChannels; }
 
-        size_t getNumInputBuses() const {
-            return inputBuses.size();
-        }
+        const std::string getInputBusName(int busIndex)  const { return active().inputBuses[busIndex].busName; }
+        const std::string getOutputBusName(int busIndex) const { return active().outputBuses[busIndex].busName; }
 
-        size_t getNumOutputBuses() const {
-            return outputBuses.size();
-        }
-
-        int getNumInputChannels(int busIndex)
-        {
-            return inputBuses[busIndex].numChannels;
-        }
-
-        int getNumOutputChannels(int busIndex)
-        {
-            return outputBuses[busIndex].numChannels;
-        }
-
-        const std::string getInputBusName(int busIndex)
-        {
-            return inputBuses[busIndex].busName;
-        }
-
-        const std::string getOutputBusName(int busIndex)
-        {
-            return outputBuses[busIndex].busName;
-        }
-
-        // Returns the total number of input channels across all input buses
         int getTotalNumInputChannels() const
         {
             int total = 0;
-            for (const auto& bus : inputBuses)
-            {
-                total += bus.numChannels;
-            }
+            for (const auto& bus : active().inputBuses) total += bus.numChannels;
             return total;
         }
 
-        // Returns the total number of output channels across all output buses
         int getTotalNumOutputChannels() const
         {
             int total = 0;
-            for (const auto& bus : outputBuses)
-            {
-                total += bus.numChannels;
-            }
+            for (const auto& bus : active().outputBuses) total += bus.numChannels;
             return total;
+        }
+
+        bool isEmpty() const { return configs.empty(); }
+
+    private:
+        const AudioPortsConfig& active() const
+        {
+            assert(!configs.empty() && "addAudioPortsConfig() must be called at least once");
+            return configs[activeConfigIndex];
         }
     };
 

@@ -247,9 +247,63 @@ bool LatticeClapPlugin::audioPortsInfo(
   else
     info->flags = CLAP_AUDIO_PORT_SUPPORTS_64BITS;
 
-  info->port_type = CLAP_PORT_STEREO;
+  // Map channel count to the appropriate CLAP port type string
+  if (info->channel_count == 1)       info->port_type = CLAP_PORT_MONO;
+  else if (info->channel_count == 2)  info->port_type = CLAP_PORT_STEREO;
+  else                                info->port_type = nullptr;
 
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Audio ports config extension
+// ---------------------------------------------------------------------------
+
+static const char* clapPortType(int channels) noexcept
+{
+    if (channels == 1) return CLAP_PORT_MONO;
+    if (channels == 2) return CLAP_PORT_STEREO;
+    return nullptr;
+}
+
+uint32_t LatticeClapPlugin::audioPortsConfigCount() const noexcept
+{
+    return static_cast<uint32_t>(processor.getChannelConfig().configs.size());
+}
+
+bool LatticeClapPlugin::audioPortsGetConfig(uint32_t index,
+                                             clap_audio_ports_config *config) const noexcept
+{
+    const auto& configs = processor.getChannelConfig().configs;
+    if (index >= configs.size()) return false;
+    const auto& cfg = configs[index];
+
+    config->id = cfg.id;
+    snprintf(config->name, sizeof(config->name) - 1, "%s", cfg.name.c_str());
+    config->input_port_count  = static_cast<uint32_t>(cfg.inputBuses.size());
+    config->output_port_count = static_cast<uint32_t>(cfg.outputBuses.size());
+
+    config->has_main_input = !cfg.inputBuses.empty();
+    if (config->has_main_input)
+    {
+        config->main_input_channel_count = static_cast<uint32_t>(cfg.inputBuses[0].numChannels);
+        config->main_input_port_type     = clapPortType(cfg.inputBuses[0].numChannels);
+    }
+
+    config->has_main_output = !cfg.outputBuses.empty();
+    if (config->has_main_output)
+    {
+        config->main_output_channel_count = static_cast<uint32_t>(cfg.outputBuses[0].numChannels);
+        config->main_output_port_type     = clapPortType(cfg.outputBuses[0].numChannels);
+    }
+
+    return true;
+}
+
+bool LatticeClapPlugin::audioPortsSetConfig(clap_id configId) noexcept
+{
+    processor.selectAudioPortsConfig(static_cast<uint32_t>(configId));
+    return true;
 }
 
 bool LatticeClapPlugin::stateSave(const clap_ostream *ostream) noexcept {

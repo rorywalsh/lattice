@@ -14,8 +14,7 @@ pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 GainProcessor::GainProcessor()
     : Processor()
 {
-	addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
-    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+    addAudioPortsConfig("Stereo", "2", "2");
 
     addParameter({ "Gain", 0, 1 });
 

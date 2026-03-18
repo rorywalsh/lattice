@@ -63,9 +63,7 @@ void SimpleSynthProcessor::Synth::setBlockSize(std::size_t blockSize)
 SimpleSynthProcessor::SimpleSynthProcessor()
     : Processor()
 {
-
-    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
-    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+    addAudioPortsConfig("Stereo", "2", "2");
     
     addParameter({ "Wave", 1, 3, 1, 1, 1});
     addParameter({ "Attack", 0, 1, 0.01, 0.001, 1});

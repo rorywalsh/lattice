@@ -14,10 +14,7 @@ pluginType* LatticeProcessorPluginFactory::createPlugin(const clap_host* host)
 FlangerProcessor::FlangerProcessor()
     : Processor(), flangerLeft(10, 44100), flangerRight(10, 44100)
 {
-
-    addInputBus("Input Bus", 2, lattice::ChannelLayout::Stereo);
-
-    addOutputBus("Output Bus", 2, lattice::ChannelLayout::Stereo);
+    addAudioPortsConfig("Stereo", "2", "2");
 
     addParameter({ "Max Delay", 0, 5, 2.5f, 0.1f, 1.f});
     addParameter({ "LFO Frequency", 0, 20, .5, .0001f, 1.f});
