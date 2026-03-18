@@ -107,6 +107,19 @@ public:
         // Deliver the accumulated backlog to this new subscriber.
         for (const auto& ev : eventBacklog)
             p->dispatchAraEvent(ev);
+        // Late-registration replay: if this processor joins after the host already
+        // enabled sample access on some sources (common when the UI instance is
+        // created after the rendering instance), araDidEnableSamplesAccess was never
+        // called on it.  Replay enable=true for every source that is currently
+        // accessible so araAccessibleSources is populated correctly.
+        if (const auto* doc = this->getDocument())
+        {
+            for (auto* source : doc->getAudioSources())
+            {
+                if (source->isSampleAccessEnabled())
+                    p->araDidEnableSamplesAccess(source, true);
+            }
+        }
     }
 
 protected:
@@ -308,21 +321,39 @@ public:
     // -------------------------------------------------------------------------
 
     /// Returns true if the given audio source is used by any playback region
-    /// assigned to this specific plugin instance. Use this inside ARA callbacks
-    /// to skip sources that belong to other instances in the same session.
+    /// assigned to this specific plugin instance. Checks PlaybackRenderer first,
+    /// then EditorRenderer, then EditorView region sequences — so it works even
+    /// when the host doesn't assign a PlaybackRenderer role to the UI instance.
     bool isMyAudioSource(ARA::PlugIn::AudioSource* source) const
     {
-        const auto* renderer = araExtension.getPlaybackRenderer();
-        if (renderer == nullptr || source == nullptr)
+        if (source == nullptr)
             return false;
 
-        const auto& regions = renderer->getPlaybackRegions();
+        // Helper: check a flat list of playback regions.
+        auto sourceInRegions = [&](const std::vector<ARA::PlugIn::PlaybackRegion*>& regions) -> bool {
+            for (const auto* region : regions)
+                if (region->getAudioModification()->getAudioSource() == source)
+                    return true;
+            return false;
+        };
 
-        for (const auto* region : regions)
+        // 1. PlaybackRenderer — the primary role for rendering instances.
+        if (const auto* pr = araExtension.getPlaybackRenderer())
+            if (!pr->getPlaybackRegions().empty())
+                return sourceInRegions(pr->getPlaybackRegions());
+
+        // 2. EditorRenderer — has both getPlaybackRegions() and getRegionSequences();
+        //    check both since hosts may assign only one of the two.
+        if (const auto* er = araExtension.getEditorRenderer())
         {
-            if (region->getAudioModification()->getAudioSource() == source)
-                return true;
+            if (!er->getPlaybackRegions().empty())
+                return sourceInRegions(er->getPlaybackRegions());
+            for (const auto* seq : er->getRegionSequences())
+                for (const auto* region : seq->getPlaybackRegions())
+                    if (region->getAudioModification()->getAudioSource() == source)
+                        return true;
         }
+
         return false;
     }
 

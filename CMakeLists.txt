@@ -51,7 +51,7 @@ endif()
 include(cmake/Dependencies.cmake)
 
 
-set(LATTICE_ROOT_DIR "${CMAKE_SOURCE_DIR}")
+set(LATTICE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 # Set LATTICE_INCLUDE_DIRS, and LATTICE_SOURCE_FILES
 # Also defines the generate_plugin_header function
 include(cmake/lattice.cmake)

@@ -101,9 +101,15 @@ inline const clap_plugin_descriptor* getDescriptor() {
     target_include_directories(${TARGET} PRIVATE ${PLUGIN_INFO_OUTPUT_DIRECTORY})
 
     # Define a preprocessor macro for the header name
-    target_compile_definitions(${TARGET} PRIVATE 
+    target_compile_definitions(${TARGET} PRIVATE
         PLUGIN_INFO_HEADER="${HEADER_NAME}"
     )
+
+    # On Linux, WebViewProcess must be built first so it can generate
+    # webview_binary.h before LatticeClapPlugin.cpp is compiled
+    if(LINUX AND TARGET WebViewProcess)
+        add_dependencies(${TARGET} WebViewProcess)
+    endif()
 endfunction()
 
 # ==========================================================================
@@ -124,7 +130,9 @@ if (APPLE)
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/clap/platform/MacParent.mm")
 elseif(LINUX)
     list(APPEND LATTICE_SOURCE_FILES "${LATTICE_ROOT_DIR}/src/lattice/LatticeMemoryQueue.h")
-    add_subdirectory("${LATTICE_ROOT_DIR}/src/lattice/LinuxWebviewProcess")
+    if(NOT TARGET WebViewProcess)
+        add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../src/lattice/LinuxWebviewProcess")
+    endif()
 endif()
 
 # ======================================================================

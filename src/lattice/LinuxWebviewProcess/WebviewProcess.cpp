@@ -94,7 +94,7 @@ class WebViewApp
             
             // Create dummy memory queue for testing
             try {
-                memoryQueue = std::make_unique<lattice::SharedMemoryQueue>("test_queue", 100, 1024);
+                memoryQueue = std::make_unique<lattice::SharedMemoryQueue>("test_queue", 100, 65536);
                 std::cout << "Test shared memory created successfully." << std::endl;
             } catch (const std::exception &e) {
                 std::cerr << "Failed to create test shared memory: " << e.what() << std::endl;
@@ -116,7 +116,7 @@ class WebViewApp
 
             try
             {
-                memoryQueue = std::make_unique<lattice::SharedMemoryQueue>(std::string(argv[2]), 100, 1024);
+                memoryQueue = std::make_unique<lattice::SharedMemoryQueue>(std::string(argv[2]), 100, 65536);
                 std::cout << "Shared memory created successfully." << std::endl;
             }
             catch (const std::exception &e)
@@ -262,10 +262,15 @@ class WebViewApp
         // Create the WebView with the content manager
         webview = WEBKIT_WEB_VIEW(webkit_web_view_new_with_user_content_manager(userContentManager));
 
-        // Define the JavaScript function to be injected
+        // Define the JavaScript function to be injected.
+        // sendMessageFromUI matches the interface expected by main.js (plugin context).
+        // SendMsg is kept for any legacy callers.
         const char *js_code = "function SendMsg(m) {"
                               "   window.webkit.messageHandlers.callback.postMessage(m);"
-                              "}";
+                              "}"
+                              "window.sendMessageFromUI = function(m) {"
+                              "   window.webkit.messageHandlers.callback.postMessage(m);"
+                              "};";
 
         // Create a WebKit user script that runs at document start
         WebKitUserScript *script =
@@ -292,11 +297,15 @@ class WebViewApp
             gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(webview));
         }
 
-        // Enable Developer Tools if requested
-        if (enableDebug)
+        // Always enable file access for loading local resources
         {
             WebKitSettings *settings = webkit_web_view_get_settings(WEBKIT_WEB_VIEW(webview));
-            webkit_settings_set_enable_developer_extras(settings, TRUE);
+            webkit_settings_set_allow_file_access_from_file_urls(settings, TRUE);
+            webkit_settings_set_allow_universal_access_from_file_urls(settings, TRUE);
+
+            // Enable Developer Tools if requested
+            if (enableDebug)
+                webkit_settings_set_enable_developer_extras(settings, TRUE);
         }
 
         g_object_ref_sink(webview);  // Take ownership

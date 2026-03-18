@@ -25,7 +25,7 @@
 #include <clap/ext/params.h>
 #else
 #include "../LatticeMemoryQueue.h"
-#include "text/choc_Files.h"
+#include "choc/text/choc_Files.h"
 #endif
 
 // Forward declare lattice::Processor
@@ -113,7 +113,8 @@ public:
 
   // Keyboard passthrough control
   // By default, all keypresses pass through to the DAW
-  // Call setConsumeKeypresses(true) when the webview needs keyboard input (e.g., text fields)
+  // Call setConsumeKeypresses(true) when the webview needs keyboard input
+  // (e.g., text fields)
   void setConsumeKeypresses(bool consume) {
     consumeKeypresses.store(consume, std::memory_order_relaxed);
   }
@@ -172,8 +173,8 @@ private:
   std::atomic<bool> isShuttingDown{false};
 
   // Keyboard handling
-  // By default false - keys pass through to DAW via sendKeyEventToHost JS binding
-  // Set to true when webview needs keyboard input (text fields, etc.)
+  // By default false - keys pass through to DAW via sendKeyEventToHost JS
+  // binding Set to true when webview needs keyboard input (text fields, etc.)
   std::atomic<bool> consumeKeypresses{false};
 #if LATTICE_WINDOWS
   HWND parentWindow = nullptr;
