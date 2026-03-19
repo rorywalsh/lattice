@@ -549,12 +549,19 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
         nextEvent->type == CLAP_EVENT_PARAM_VALUE) {
       auto p = reinterpret_cast<const clap_event_param_value *>(nextEvent);
       if (p->param_id < processor.getParameters().size()) {
+        const auto& param = processor.getParameter(p->param_id);
+        // Clamp to the declared parameter range before sending anywhere.
+        // Hosts can send out-of-range values when a user types a number directly
+        // into the DAW's parameter text field — the plugin receives a clamped
+        // value via setParameter(), but the frontend must also see the clamped value.
+        const double clampedValue = std::max(static_cast<double>(param.min),
+                                             std::min(static_cast<double>(param.max), p->value));
+
         nlohmann::json j, h;
         j["command"] = "parameterChange";
         h["paramIdx"] = p->param_id;
-        // p->value is now in actual range (denormalized) since we report actual
-        // min/max to CLAP
-        h["value"] = p->value;
+        // p->value is in actual range (denormalized) since we report actual min/max to CLAP
+        h["value"] = clampedValue;
         j["data"] = h;
 
         std::stringstream fullScript;
@@ -572,10 +579,10 @@ LatticeClapPlugin::process(const clap_process *process) noexcept {
 #else
         webviewMessageQueue.enqueue(fullScript.str());
 #endif
-        // Normalize the value before sending to processor.setParameter()
+        // Normalize the clamped value before sending to processor.setParameter()
         // since setParameter expects normalized values [0-1]
         double normalizedValue =
-            processor.getParameter(p->param_id).toNormalised(p->value);
+            param.toNormalised(clampedValue);
         sendParameterValueToHost(p->param_id, normalizedValue);
       }
     } else if (nextEvent->type == CLAP_EVENT_NOTE_ON ||
