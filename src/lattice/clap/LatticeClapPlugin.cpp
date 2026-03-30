@@ -103,6 +103,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
   auto functionName = processor.getWebViewSendFunctionName();
   processor.sendWebViewMessage = [this,
                                   functionName](const nlohmann::json &message) {
+    // Don't enqueue if we're shutting down to prevent race condition
+    if (isShuttingDown.load(std::memory_order_acquire)) {
+      return;
+    }
     std::stringstream fullScript;
     fullScript << "(function(m){"
                << "var fn='" << functionName << "';"
@@ -121,6 +125,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
   };
 
   processor.setWebViewHtml = [this](const std::string &html) {
+    // Don't access webview if we're shutting down to prevent race condition
+    if (isShuttingDown.load(std::memory_order_acquire)) {
+      return;
+    }
 #ifdef LATTICE_LINUX
 
 #else
