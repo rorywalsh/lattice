@@ -428,9 +428,9 @@ bool LatticeClapPlugin::paramsValueToText(clap_id paramId, double value,
     return false;
 
   const auto& param = processor.getParameter(paramId);
-  // Include prepend/append text around the numeric value
+  // Include prefix/suffix text around the numeric value
   snprintf(display, size, "%s%.2f%s",
-           param.prepend.c_str(), value, param.append.c_str());
+           param.prefix.c_str(), value, param.suffix.c_str());
 
   return true;
 }
@@ -442,14 +442,14 @@ bool LatticeClapPlugin::paramsTextToValue(clap_id paramId, const char *display,
   if (paramId > numParameters)
     return false;
 
-  // Strip prepend/append text before parsing the numeric value
+  // Strip prefix/suffix text before parsing the numeric value
   const auto& param = processor.getParameter(paramId);
   std::string text(display);
-  if (!param.prepend.empty() && text.find(param.prepend) == 0)
-    text = text.substr(param.prepend.size());
-  if (!param.append.empty() && text.size() >= param.append.size() &&
-      text.rfind(param.append) == text.size() - param.append.size())
-    text = text.substr(0, text.size() - param.append.size());
+  if (!param.prefix.empty() && text.find(param.prefix) == 0)
+    text = text.substr(param.prefix.size());
+  if (!param.suffix.empty() && text.size() >= param.suffix.size() &&
+      text.rfind(param.suffix) == text.size() - param.suffix.size())
+    text = text.substr(0, text.size() - param.suffix.size());
 
   *value = strtod(text.c_str(), nullptr);
 
