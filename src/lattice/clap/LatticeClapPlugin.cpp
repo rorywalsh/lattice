@@ -427,9 +427,10 @@ bool LatticeClapPlugin::paramsValueToText(clap_id paramId, double value,
   if (paramId > numParameters)
     return false;
 
-  // value is already in actual range (denormalized) from CLAP
-  // Format it for display
-  snprintf(display, size, "%.2f", value);
+  const auto& param = processor.getParameter(paramId);
+  // Include prepend/append text around the numeric value
+  snprintf(display, size, "%s%.2f%s",
+           param.prepend.c_str(), value, param.append.c_str());
 
   return true;
 }
@@ -441,9 +442,16 @@ bool LatticeClapPlugin::paramsTextToValue(clap_id paramId, const char *display,
   if (paramId > numParameters)
     return false;
 
-  const double parsedValue = strtod(display, nullptr);
+  // Strip prepend/append text before parsing the numeric value
+  const auto& param = processor.getParameter(paramId);
+  std::string text(display);
+  if (!param.prepend.empty() && text.find(param.prepend) == 0)
+    text = text.substr(param.prepend.size());
+  if (!param.append.empty() && text.size() >= param.append.size() &&
+      text.rfind(param.append) == text.size() - param.append.size())
+    text = text.substr(0, text.size() - param.append.size());
 
-  *value = parsedValue;
+  *value = strtod(text.c_str(), nullptr);
 
   return true;
 }

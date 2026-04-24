@@ -273,7 +273,9 @@ namespace lattice {
     // frontend developers and supporting modern host features like stepped parameters.
     //
     struct Parameter {
-        std::string name;   ///< Parameter name
+        std::string name;       ///< Parameter name
+        std::string prepend;    ///< Text prepended to value in DAW display (e.g. "Self-destruct in ")
+        std::string append;     ///< Text appended to value in DAW display (e.g. " seconds")
         float min;          ///< Minimum value (denormalized range)
         float max;          ///< Maximum value (denormalized range)
         float value;        ///< Current value - ALWAYS NORMALIZED [0.0, 1.0] for internal use
@@ -288,8 +290,10 @@ namespace lattice {
 
         // Constructor with default values
         Parameter(const std::string& paramName = "", float paramMin = 0.f, float paramMax = 1.f,
-            float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f)
-            : name(paramName), min(paramMin), max(paramMax),
+            float paramValue = 0.f, float paramIncrement = 0.01f, float paramSkew = 1.f,
+            const std::string& paramPrepend = "", const std::string& paramAppend = "")
+            : name(paramName), prepend(paramPrepend), append(paramAppend),
+            min(paramMin), max(paramMax),
             value(paramValue), skew(paramSkew), increment(paramIncrement) {}
         
             // Converts a normalised value [0.0, 1.0] to the parameter's actual range
