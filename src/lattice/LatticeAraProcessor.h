@@ -204,6 +204,17 @@ protected:
         emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didEnableAudioSourceSamplesAccess"}, {"enable", enable}}}});
     }
 
+    void didUpdatePlaybackRegionProperties(ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors)
+                p->araPlaybackRegionPropertiesUpdated(playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didUpdatePlaybackRegionProperties"}}}});
+    }
+
 private:
     mutable std::mutex                  controllerMutex;
     std::vector<AraProcessor<Derived>*> processors;
@@ -275,6 +286,9 @@ public:
     /// When enable == true, the source is ready to be read via HostAudioReader.
     virtual void araDidEnableSamplesAccess(ARA::PlugIn::AudioSource* /*source*/, bool /*enable*/) {}
 
+    /// Called when the host updates playback region properties (e.g. region resized/moved).
+    virtual void araPlaybackRegionPropertiesUpdated(ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+
     // -------------------------------------------------------------------------
     // Webview event helpers
     // -------------------------------------------------------------------------
@@ -337,7 +351,7 @@ public:
             return false;
         };
 
-        // 1. PlaybackRenderer — the primary role for rendering instances.
+        // PlaybackRenderer — the primary role for rendering instances.
         if (const auto* pr = araExtension.getPlaybackRenderer())
             if (!pr->getPlaybackRegions().empty())
                 return sourceInRegions(pr->getPlaybackRegions());
