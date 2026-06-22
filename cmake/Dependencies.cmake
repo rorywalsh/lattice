@@ -20,7 +20,10 @@ FetchContent_Declare(
 FetchContent_Declare(
     clap-helpers
     GIT_REPOSITORY https://github.com/free-audio/clap-helpers.git
-    GIT_TAG main
+    # Pinned to CLAP 1.2.6 — compatible with the pinned CLAP 1.2.7 headers.
+    # Do not use GIT_TAG main; clap-helpers main has moved past the CLAP
+    # version pinned here, causing unknown-type build errors.
+    GIT_TAG 58ab81b
     FIND_PACKAGE_ARGS NAMES clap-helpers
 )
 
