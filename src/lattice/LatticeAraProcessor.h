@@ -215,6 +215,48 @@ protected:
                      {"data", {{"callback", "didUpdatePlaybackRegionProperties"}}}});
     }
 
+    void willBeginEditing() noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araBeginEditing();
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willBeginEditing"}}}});
+    }
+
+    void didEndEditing() noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araEndEditing();
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didEndEditing"}}}});
+    }
+
+    void willNotifyModelUpdates() noexcept override
+    {
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willNotifyModelUpdates"}}}});
+    }
+
+    void didNotifyModelUpdates() noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araDidNotifyModelUpdates();
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didNotifyModelUpdates"}}}});
+    }
+
+    void didUpdateDocumentProperties(ARA::PlugIn::Document* document) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araDocumentPropertiesUpdated(document);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didUpdateDocumentProperties"}}}});
+    }
+
 private:
     mutable std::mutex                  controllerMutex;
     std::vector<AraProcessor<Derived>*> processors;
@@ -263,38 +305,50 @@ public:
     // implementations must be thread-safe and exception-safe (noexcept context).
     // -------------------------------------------------------------------------
 
-    /// Called when the host wants to restore state from an archive.
-    /// Return false to indicate failure.
+    // Called when the host wants to restore state from an archive.
+    // Return false to indicate failure.
     virtual bool araRestoreFromArchive() { return true; }
 
-    /// Called when the host wants to store state to an archive.
-    /// Return false to indicate failure.
+    // Called when the host wants to store state to an archive.
+    // Return false to indicate failure.
     virtual bool araStoreToArchive() { return true; }
 
-    /// Called when the musical context (tempo, time signature, etc.) changes.
+    // Called when the musical context (tempo, time signature, etc.) changes.
     virtual void araMusicalContextUpdated(ARA::PlugIn::MusicalContext* /*ctx*/,
                                           ARA::ContentUpdateScopes /*scopes*/) {}
 
-    /// Called when audio source content (samples, chord track, etc.) changes.
+    // Called when audio source content (samples, chord track, etc.) changes.
     virtual void araAudioSourceContentUpdated(ARA::PlugIn::AudioSource* /*source*/,
                                                ARA::ContentUpdateScopes /*scopes*/) {}
 
-    /// Called just before the host enables or disables sample access on a source.
+    // Called just before the host enables or disables sample access on a source.
     virtual void araWillEnableSamplesAccess(ARA::PlugIn::AudioSource* /*source*/, bool /*enable*/) {}
 
-    /// Called after the host enables or disables sample access on a source.
-    /// When enable == true, the source is ready to be read via HostAudioReader.
+    // Called after the host enables or disables sample access on a source.
+    // When enable == true, the source is ready to be read via HostAudioReader.
     virtual void araDidEnableSamplesAccess(ARA::PlugIn::AudioSource* /*source*/, bool /*enable*/) {}
 
-    /// Called when the host updates playback region properties (e.g. region resized/moved).
+    // Called when the host updates playback region properties (e.g. region resized/moved).
     virtual void araPlaybackRegionPropertiesUpdated(ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+
+    // Called when the host begins an edit cycle.
+    virtual void araBeginEditing() {}
+
+    // Called when the host ends an edit cycle.
+    virtual void araEndEditing() {}
+
+    // Called after the host has processed model updates.
+    virtual void araDidNotifyModelUpdates() {}
+
+    // Called when document properties are updated.
+    virtual void araDocumentPropertiesUpdated(ARA::PlugIn::Document* /*document*/) {}
 
     // -------------------------------------------------------------------------
     // Webview event helpers
     // -------------------------------------------------------------------------
 
-    /// Post a JSON event to the webview (thread-safe).
-    /// Events are queued until the webview is ready, then forwarded on process().
+    // Post a JSON event to the webview (thread-safe).
+    // Events are queued until the webview is ready, then forwarded on process().
     void sendAraEvent(const nlohmann::json& event)
     {
         lattice::logDebug << "sendAraEvent: queuing command='" << event.value("command", "?") << "'";
@@ -302,9 +356,9 @@ public:
         araQueue.push_back(event);
     }
 
-    /// Forward all queued ARA events to the webview.
-    /// Call this once per block from your process() implementation.
-    /// No-ops until onWebViewIsReady() has fired.
+    // Forward all queued ARA events to the webview.
+    // Call this once per block from your process() implementation.
+    // No-ops until onWebViewIsReady() has fired.
     void flushAraEvents()
     {
         if (!webViewReady.load(std::memory_order_acquire))
@@ -327,17 +381,17 @@ public:
     // Framework internals — do not call directly
     // -------------------------------------------------------------------------
 
-    /// Called by the document controller to route an event into this instance's queue.
+    // Called by the document controller to route an event into this instance's queue.
     void dispatchAraEvent(const nlohmann::json& event) { sendAraEvent(event); }
 
     // -------------------------------------------------------------------------
     // Source ownership helpers
     // -------------------------------------------------------------------------
 
-    /// Returns true if the given audio source is used by any playback region
-    /// assigned to this specific plugin instance. Checks PlaybackRenderer first,
-    /// then EditorRenderer, then EditorView region sequences — so it works even
-    /// when the host doesn't assign a PlaybackRenderer role to the UI instance.
+    // Returns true if the given audio source is used by any playback region
+    // assigned to this specific plugin instance. Checks PlaybackRenderer first,
+    // then EditorRenderer, then EditorView region sequences — so it works even
+    // when the host doesn't assign a PlaybackRenderer role to the UI instance.
     bool isMyAudioSource(ARA::PlugIn::AudioSource* source) const
     {
         if (source == nullptr)
@@ -356,8 +410,8 @@ public:
             if (!pr->getPlaybackRegions().empty())
                 return sourceInRegions(pr->getPlaybackRegions());
 
-        // 2. EditorRenderer — has both getPlaybackRegions() and getRegionSequences();
-        //    check both since hosts may assign only one of the two.
+        // EditorRenderer — has both getPlaybackRegions() and getRegionSequences();
+        // check both since hosts may assign only one of the two.
         if (const auto* er = araExtension.getEditorRenderer())
         {
             if (!er->getPlaybackRegions().empty())
@@ -371,8 +425,8 @@ public:
         return false;
     }
 
-    /// Returns the ARA factory for this plugin type. Used by
-    /// LATTICE_DEFINE_ARA_FACTORY and wired into the getAraFactory callback.
+    // Returns the ARA factory for this plugin type. Used by
+    // LATTICE_DEFINE_ARA_FACTORY and wired into the getAraFactory callback.
     static const ARA::ARAFactory* getStaticAraFactory() noexcept
     {
         return ARA::PlugIn::PlugInEntry::getPlugInEntry<
