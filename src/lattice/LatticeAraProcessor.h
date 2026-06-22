@@ -351,7 +351,6 @@ public:
     // Events are queued until the webview is ready, then forwarded on process().
     void sendAraEvent(const nlohmann::json& event)
     {
-        lattice::logDebug << "sendAraEvent: queuing command='" << event.value("command", "?") << "'";
         std::lock_guard<std::mutex> lock(araQueueMutex);
         araQueue.push_back(event);
     }
