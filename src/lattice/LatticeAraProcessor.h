@@ -257,6 +257,70 @@ protected:
                      {"data", {{"callback", "didUpdateDocumentProperties"}}}});
     }
 
+    void didUpdateMusicalContextProperties(ARA::PlugIn::MusicalContext* musicalContext) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araMusicalContextPropertiesUpdated(musicalContext);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didUpdateMusicalContextProperties"}}}});
+    }
+
+    void didUpdateRegionSequenceProperties(ARA::PlugIn::RegionSequence* regionSequence) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequencePropertiesUpdated(regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didUpdateRegionSequenceProperties"}}}});
+    }
+
+    void didUpdateAudioSourceProperties(ARA::PlugIn::AudioSource* audioSource) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourcePropertiesUpdated(audioSource);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didUpdateAudioSourceProperties"}}}});
+    }
+
+    void didUpdateAudioModificationProperties(ARA::PlugIn::AudioModification* audioModification) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationPropertiesUpdated(audioModification);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didUpdateAudioModificationProperties"}}}});
+    }
+
+    void didAddPlaybackRegionToRegionSequence(ARA::PlugIn::RegionSequence* regionSequence,
+                                               ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors)
+                p->araPlaybackRegionAddedToRegionSequence(regionSequence, playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "didAddPlaybackRegionToRegionSequence"}}}});
+    }
+
+    void willRemovePlaybackRegionFromRegionSequence(ARA::PlugIn::RegionSequence* regionSequence,
+                                                     ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors)
+                p->araPlaybackRegionRemovedFromRegionSequence(regionSequence, playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"},
+                     {"data", {{"callback", "willRemovePlaybackRegionFromRegionSequence"}}}});
+    }
+
 private:
     mutable std::mutex                  controllerMutex;
     std::vector<AraProcessor<Derived>*> processors;
@@ -343,6 +407,26 @@ public:
     // Called when document properties are updated.
     virtual void araDocumentPropertiesUpdated(ARA::PlugIn::Document* /*document*/) {}
 
+    // Called when musical context properties are updated.
+    virtual void araMusicalContextPropertiesUpdated(ARA::PlugIn::MusicalContext* /*musicalContext*/) {}
+
+    // Called when region sequence properties are updated.
+    virtual void araRegionSequencePropertiesUpdated(ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+
+    // Called when audio source properties are updated.
+    virtual void araAudioSourcePropertiesUpdated(ARA::PlugIn::AudioSource* /*audioSource*/) {}
+
+    // Called when audio modification properties are updated (e.g. fades applied).
+    virtual void araAudioModificationPropertiesUpdated(ARA::PlugIn::AudioModification* /*audioModification*/) {}
+
+    // Called when a playback region is added to a region sequence.
+    virtual void araPlaybackRegionAddedToRegionSequence(ARA::PlugIn::RegionSequence* /*regionSequence*/,
+                                                        ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+
+    // Called when a playback region is about to be removed from a region sequence.
+    virtual void araPlaybackRegionRemovedFromRegionSequence(ARA::PlugIn::RegionSequence* /*regionSequence*/,
+                                                             ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+
     // -------------------------------------------------------------------------
     // Webview event helpers
     // -------------------------------------------------------------------------
@@ -371,7 +455,6 @@ public:
             pending.swap(araQueue);
         }
 
-        lattice::logDebug << "flushAraEvents: dispatching " << pending.size() << " event(s) to webview";
         for (const auto& ev : pending)
             sendWebViewMessage(ev);
     }
