@@ -23,6 +23,10 @@ public:
     void araAudioSourceContentUpdated(ARA::PlugIn::AudioSource* source,
                                        ARA::ContentUpdateScopes scopes) override;
     void araDidEnableSamplesAccess(ARA::PlugIn::AudioSource* source, bool enable) override;
+    void araBeginEditing() override;
+    void araEndEditing() override;
+    void araDidNotifyModelUpdates() override;
+    void araDocumentPropertiesUpdated(ARA::PlugIn::Document* document) override;
 };
 
 #endif // LATTICE_HAS_ARA

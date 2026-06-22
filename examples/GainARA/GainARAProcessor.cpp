@@ -177,6 +177,30 @@ void GainARAProcessor::araDidEnableSamplesAccess(ARA::PlugIn::AudioSource* sourc
         sendAraEvent(createDiagnosticsEvent("didEnableAudioSourceSamplesAccess", analyzeAudioSource(source)));
 }
 
+void GainARAProcessor::araBeginEditing()
+{
+    lattice::logDebug << "araBeginEditing";
+    sendAraEvent({{"command", "araLifecycle"}, {"data", {{"callback", "araBeginEditing"}}}});
+}
+
+void GainARAProcessor::araEndEditing()
+{
+    lattice::logDebug << "araEndEditing";
+    sendAraEvent({{"command", "araLifecycle"}, {"data", {{"callback", "araEndEditing"}}}});
+}
+
+void GainARAProcessor::araDidNotifyModelUpdates()
+{
+    lattice::logDebug << "araDidNotifyModelUpdates";
+    sendAraEvent({{"command", "araLifecycle"}, {"data", {{"callback", "araDidNotifyModelUpdates"}}}});
+}
+
+void GainARAProcessor::araDocumentPropertiesUpdated(ARA::PlugIn::Document* /*document*/)
+{
+    lattice::logDebug << "araDocumentPropertiesUpdated";
+    sendAraEvent({{"command", "araLifecycle"}, {"data", {{"callback", "araDocumentPropertiesUpdated"}}}});
+}
+
 void GainARAProcessor::onMessageFromWebView(const nlohmann::json& j)
 {
     const auto& payload = (j.is_array() && !j.empty()) ? j.at(0) : j;
