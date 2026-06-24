@@ -84,8 +84,12 @@ inline thread_local AraProcessor<Derived>* currentBinding = nullptr;
 // startup events are missed regardless of which UI opens first.
 // ---------------------------------------------------------------------------
 template<typename Derived>
+class LatticeEditorView;
+
+template<typename Derived>
 class LatticeDocumentController : public ARA::PlugIn::DocumentController
 {
+    friend class LatticeEditorView<Derived>;
 public:
     LatticeDocumentController(const ARA::PlugIn::PlugInEntry* entry,
                                const ARA::ARADocumentControllerHostInstance* instance) noexcept
@@ -599,10 +603,62 @@ protected:
         emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyPlaybackRegion"}}}});
     }
 
+    ARA::PlugIn::EditorView* doCreateEditorView() noexcept override
+    {
+        auto* view = new LatticeEditorView<Derived>(this);
+        view->setEditorOpen(true);
+        return view;
+    }
+
 private:
     mutable std::mutex                  controllerMutex;
     std::vector<AraProcessor<Derived>*> processors;
     mutable std::deque<nlohmann::json>  eventBacklog; // events before first processor registered
+};
+
+// ---------------------------------------------------------------------------
+// LatticeEditorView<Derived> — forwards host selection/visibility notifications
+// to each AraProcessor's CRTP virtuals and emits JSON events.
+// Created by LatticeDocumentController::doCreateEditorView().
+// ---------------------------------------------------------------------------
+template<typename Derived>
+class LatticeEditorView : public ARA::PlugIn::EditorView
+{
+    using ARA::PlugIn::EditorView::EditorView;
+
+protected:
+    void doNotifySelection(const ARA::PlugIn::ViewSelection* selection) noexcept override
+    {
+        auto* dc = getDocumentController<LatticeDocumentController<Derived>>();
+        {
+            std::lock_guard<std::mutex> lock(dc->controllerMutex);
+            for (auto* p : dc->processors)
+                p->araNotifySelection(selection);
+        }
+        nlohmann::json regionNames = nlohmann::json::array();
+        for (const auto* pr : selection->getEffectivePlaybackRegions())
+        {
+            if (const auto* src = pr->getAudioModification()->getAudioSource())
+                regionNames.push_back(src->getName() ? src->getName() : "");
+        }
+        dc->emitOrQueue({{"command", "araEditorView"},
+                         {"data", {{"callback", "notifySelection"},
+                                   {"regionNames", regionNames}}}});
+    }
+
+    void doNotifyHideRegionSequences(
+        std::vector<ARA::PlugIn::RegionSequence*> const& hiddenSequences) noexcept override
+    {
+        auto* dc = getDocumentController<LatticeDocumentController<Derived>>();
+        {
+            std::lock_guard<std::mutex> lock(dc->controllerMutex);
+            for (auto* p : dc->processors)
+                p->araNotifyHideRegionSequences(hiddenSequences);
+        }
+        dc->emitOrQueue({{"command", "araEditorView"},
+                         {"data", {{"callback", "notifyHideRegionSequences"},
+                                   {"hiddenCount", static_cast<int>(hiddenSequences.size())}}}});
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -752,6 +808,12 @@ public:
     virtual void araAudioModificationWillDestroy(ARA::PlugIn::AudioModification* /*audioModification*/) {}
     virtual void araPlaybackRegionPropertiesWillUpdate(ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
     virtual void araPlaybackRegionWillDestroy(ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+
+    // -- EditorView notifications --
+
+    virtual void araNotifySelection(const ARA::PlugIn::ViewSelection* /*selection*/) {}
+    virtual void araNotifyHideRegionSequences(
+        const std::vector<ARA::PlugIn::RegionSequence*>& /*hiddenSequences*/) {}
 
     // -------------------------------------------------------------------------
     // Webview event helpers
