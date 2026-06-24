@@ -310,7 +310,7 @@ protected:
     }
 
     void willRemovePlaybackRegionFromRegionSequence(ARA::PlugIn::RegionSequence* regionSequence,
-                                                     ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+                                                      ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
     {
         {
             std::lock_guard<std::mutex> lock(controllerMutex);
@@ -319,6 +319,284 @@ protected:
         }
         emitOrQueue({{"command", "araLifecycle"},
                      {"data", {{"callback", "willRemovePlaybackRegionFromRegionSequence"}}}});
+    }
+
+    // -- Document graph change notifications --
+
+    void didAddMusicalContextToDocument(ARA::PlugIn::Document* document,
+                                         ARA::PlugIn::MusicalContext* musicalContext) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araMusicalContextAddedToDocument(document, musicalContext);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didAddMusicalContextToDocument"}}}});
+    }
+
+    void willRemoveMusicalContextFromDocument(ARA::PlugIn::Document* document,
+                                               ARA::PlugIn::MusicalContext* musicalContext) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araMusicalContextRemovedFromDocument(document, musicalContext);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willRemoveMusicalContextFromDocument"}}}});
+    }
+
+    void didAddRegionSequenceToDocument(ARA::PlugIn::Document* document,
+                                          ARA::PlugIn::RegionSequence* regionSequence) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequenceAddedToDocument(document, regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didAddRegionSequenceToDocument"}}}});
+    }
+
+    void willRemoveRegionSequenceFromDocument(ARA::PlugIn::Document* document,
+                                                ARA::PlugIn::RegionSequence* regionSequence) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequenceRemovedFromDocument(document, regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willRemoveRegionSequenceFromDocument"}}}});
+    }
+
+    void didAddAudioSourceToDocument(ARA::PlugIn::Document* document,
+                                       ARA::PlugIn::AudioSource* audioSource) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourceAddedToDocument(document, audioSource);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didAddAudioSourceToDocument"}}}});
+    }
+
+    void willRemoveAudioSourceFromDocument(ARA::PlugIn::Document* document,
+                                             ARA::PlugIn::AudioSource* audioSource) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourceRemovedFromDocument(document, audioSource);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willRemoveAudioSourceFromDocument"}}}});
+    }
+
+    void willDestroyDocument(ARA::PlugIn::Document* document) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araDocumentWillDestroy(document);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyDocument"}}}});
+    }
+
+    // -- Pre-update notifications (will side) --
+
+    void willUpdateDocumentProperties(ARA::PlugIn::Document* document,
+                                        ARA::PlugIn::PropertiesPtr<ARA::ARADocumentProperties> /*properties*/) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araDocumentPropertiesWillUpdate(document);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willUpdateDocumentProperties"}}}});
+    }
+
+    void willUpdateMusicalContextProperties(ARA::PlugIn::MusicalContext* musicalContext,
+                                              ARA::PlugIn::PropertiesPtr<ARA::ARAMusicalContextProperties> /*properties*/) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araMusicalContextPropertiesWillUpdate(musicalContext);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willUpdateMusicalContextProperties"}}}});
+    }
+
+    void didAddRegionSequenceToMusicalContext(ARA::PlugIn::MusicalContext* musicalContext,
+                                                ARA::PlugIn::RegionSequence* regionSequence) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequenceAddedToMusicalContext(musicalContext, regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didAddRegionSequenceToMusicalContext"}}}});
+    }
+
+    void willRemoveRegionSequenceFromMusicalContext(ARA::PlugIn::MusicalContext* musicalContext,
+                                                      ARA::PlugIn::RegionSequence* regionSequence) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequenceRemovedFromMusicalContext(musicalContext, regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willRemoveRegionSequenceFromMusicalContext"}}}});
+    }
+
+    void willDestroyMusicalContext(ARA::PlugIn::MusicalContext* musicalContext) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araMusicalContextWillDestroy(musicalContext);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyMusicalContext"}}}});
+    }
+
+    void willUpdateRegionSequenceProperties(ARA::PlugIn::RegionSequence* regionSequence,
+                                              ARA::PlugIn::PropertiesPtr<ARA::ARARegionSequenceProperties> /*properties*/) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequencePropertiesWillUpdate(regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willUpdateRegionSequenceProperties"}}}});
+    }
+
+    void willDestroyRegionSequence(ARA::PlugIn::RegionSequence* regionSequence) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araRegionSequenceWillDestroy(regionSequence);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyRegionSequence"}}}});
+    }
+
+    void willUpdateAudioSourceProperties(ARA::PlugIn::AudioSource* audioSource,
+                                           ARA::PlugIn::PropertiesPtr<ARA::ARAAudioSourceProperties> /*properties*/) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourcePropertiesWillUpdate(audioSource);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willUpdateAudioSourceProperties"}}}});
+    }
+
+    void willDeactivateAudioSourceForUndoHistory(ARA::PlugIn::AudioSource* audioSource,
+                                                    bool deactivate) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourceDeactivatedForUndo(audioSource, deactivate);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDeactivateAudioSourceForUndoHistory"}, {"deactivate", deactivate}}}});
+    }
+
+    void didDeactivateAudioSourceForUndoHistory(ARA::PlugIn::AudioSource* audioSource,
+                                                  bool deactivate) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourceReactivatedFromUndo(audioSource, deactivate);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didDeactivateAudioSourceForUndoHistory"}, {"deactivate", deactivate}}}});
+    }
+
+    void didAddAudioModificationToAudioSource(ARA::PlugIn::AudioSource* audioSource,
+                                                ARA::PlugIn::AudioModification* audioModification) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationAddedToAudioSource(audioSource, audioModification);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didAddAudioModificationToAudioSource"}}}});
+    }
+
+    void willRemoveAudioModificationFromAudioSource(ARA::PlugIn::AudioSource* audioSource,
+                                                      ARA::PlugIn::AudioModification* audioModification) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationRemovedFromAudioSource(audioSource, audioModification);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willRemoveAudioModificationFromAudioSource"}}}});
+    }
+
+    void willDestroyAudioSource(ARA::PlugIn::AudioSource* audioSource) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioSourceWillDestroy(audioSource);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyAudioSource"}}}});
+    }
+
+    void willUpdateAudioModificationProperties(ARA::PlugIn::AudioModification* audioModification,
+                                                 ARA::PlugIn::PropertiesPtr<ARA::ARAAudioModificationProperties> /*properties*/) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationPropertiesWillUpdate(audioModification);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willUpdateAudioModificationProperties"}}}});
+    }
+
+    void willDeactivateAudioModificationForUndoHistory(ARA::PlugIn::AudioModification* audioModification,
+                                                         bool deactivate) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationDeactivatedForUndo(audioModification, deactivate);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDeactivateAudioModificationForUndoHistory"}, {"deactivate", deactivate}}}});
+    }
+
+    void didDeactivateAudioModificationForUndoHistory(ARA::PlugIn::AudioModification* audioModification,
+                                                        bool deactivate) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationReactivatedFromUndo(audioModification, deactivate);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didDeactivateAudioModificationForUndoHistory"}, {"deactivate", deactivate}}}});
+    }
+
+    void didAddPlaybackRegionToAudioModification(ARA::PlugIn::AudioModification* audioModification,
+                                                   ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araPlaybackRegionAddedToAudioModification(audioModification, playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "didAddPlaybackRegionToAudioModification"}}}});
+    }
+
+    void willRemovePlaybackRegionFromAudioModification(ARA::PlugIn::AudioModification* audioModification,
+                                                         ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araPlaybackRegionRemovedFromAudioModification(audioModification, playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willRemovePlaybackRegionFromAudioModification"}}}});
+    }
+
+    void willDestroyAudioModification(ARA::PlugIn::AudioModification* audioModification) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araAudioModificationWillDestroy(audioModification);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyAudioModification"}}}});
+    }
+
+    void willUpdatePlaybackRegionProperties(ARA::PlugIn::PlaybackRegion* playbackRegion,
+                                              ARA::PlugIn::PropertiesPtr<ARA::ARAPlaybackRegionProperties> /*properties*/) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araPlaybackRegionPropertiesWillUpdate(playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willUpdatePlaybackRegionProperties"}}}});
+    }
+
+    void willDestroyPlaybackRegion(ARA::PlugIn::PlaybackRegion* playbackRegion) noexcept override
+    {
+        {
+            std::lock_guard<std::mutex> lock(controllerMutex);
+            for (auto* p : processors) p->araPlaybackRegionWillDestroy(playbackRegion);
+        }
+        emitOrQueue({{"command", "araLifecycle"}, {"data", {{"callback", "willDestroyPlaybackRegion"}}}});
     }
 
 private:
@@ -425,7 +703,55 @@ public:
 
     // Called when a playback region is about to be removed from a region sequence.
     virtual void araPlaybackRegionRemovedFromRegionSequence(ARA::PlugIn::RegionSequence* /*regionSequence*/,
-                                                             ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+                                                              ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+
+    // -- Document graph change notifications --
+
+    virtual void araMusicalContextAddedToDocument(ARA::PlugIn::Document* /*document*/,
+                                                   ARA::PlugIn::MusicalContext* /*musicalContext*/) {}
+    virtual void araMusicalContextRemovedFromDocument(ARA::PlugIn::Document* /*document*/,
+                                                       ARA::PlugIn::MusicalContext* /*musicalContext*/) {}
+    virtual void araRegionSequenceAddedToDocument(ARA::PlugIn::Document* /*document*/,
+                                                   ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+    virtual void araRegionSequenceRemovedFromDocument(ARA::PlugIn::Document* /*document*/,
+                                                       ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+    virtual void araAudioSourceAddedToDocument(ARA::PlugIn::Document* /*document*/,
+                                                ARA::PlugIn::AudioSource* /*audioSource*/) {}
+    virtual void araAudioSourceRemovedFromDocument(ARA::PlugIn::Document* /*document*/,
+                                                    ARA::PlugIn::AudioSource* /*audioSource*/) {}
+    virtual void araDocumentWillDestroy(ARA::PlugIn::Document* /*document*/) {}
+
+    // -- Pre-update notifications (will side) --
+
+    virtual void araDocumentPropertiesWillUpdate(ARA::PlugIn::Document* /*document*/) {}
+    virtual void araMusicalContextPropertiesWillUpdate(ARA::PlugIn::MusicalContext* /*musicalContext*/) {}
+    virtual void araRegionSequenceAddedToMusicalContext(ARA::PlugIn::MusicalContext* /*musicalContext*/,
+                                                         ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+    virtual void araRegionSequenceRemovedFromMusicalContext(ARA::PlugIn::MusicalContext* /*musicalContext*/,
+                                                             ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+    virtual void araMusicalContextWillDestroy(ARA::PlugIn::MusicalContext* /*musicalContext*/) {}
+    virtual void araRegionSequencePropertiesWillUpdate(ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+    virtual void araRegionSequenceWillDestroy(ARA::PlugIn::RegionSequence* /*regionSequence*/) {}
+    virtual void araAudioSourcePropertiesWillUpdate(ARA::PlugIn::AudioSource* /*audioSource*/) {}
+    virtual void araAudioSourceDeactivatedForUndo(ARA::PlugIn::AudioSource* /*audioSource*/, bool /*deactivate*/) {}
+    virtual void araAudioSourceReactivatedFromUndo(ARA::PlugIn::AudioSource* /*audioSource*/, bool /*deactivate*/) {}
+    virtual void araAudioModificationAddedToAudioSource(ARA::PlugIn::AudioSource* /*audioSource*/,
+                                                         ARA::PlugIn::AudioModification* /*audioModification*/) {}
+    virtual void araAudioModificationRemovedFromAudioSource(ARA::PlugIn::AudioSource* /*audioSource*/,
+                                                             ARA::PlugIn::AudioModification* /*audioModification*/) {}
+    virtual void araAudioSourceWillDestroy(ARA::PlugIn::AudioSource* /*audioSource*/) {}
+    virtual void araAudioModificationPropertiesWillUpdate(ARA::PlugIn::AudioModification* /*audioModification*/) {}
+    virtual void araAudioModificationDeactivatedForUndo(ARA::PlugIn::AudioModification* /*audioModification*/,
+                                                         bool /*deactivate*/) {}
+    virtual void araAudioModificationReactivatedFromUndo(ARA::PlugIn::AudioModification* /*audioModification*/,
+                                                          bool /*deactivate*/) {}
+    virtual void araPlaybackRegionAddedToAudioModification(ARA::PlugIn::AudioModification* /*audioModification*/,
+                                                            ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+    virtual void araPlaybackRegionRemovedFromAudioModification(ARA::PlugIn::AudioModification* /*audioModification*/,
+                                                                ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+    virtual void araAudioModificationWillDestroy(ARA::PlugIn::AudioModification* /*audioModification*/) {}
+    virtual void araPlaybackRegionPropertiesWillUpdate(ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
+    virtual void araPlaybackRegionWillDestroy(ARA::PlugIn::PlaybackRegion* /*playbackRegion*/) {}
 
     // -------------------------------------------------------------------------
     // Webview event helpers
