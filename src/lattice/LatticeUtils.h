@@ -86,6 +86,7 @@ class Logger
 public:
     static Logger& getInstance();
     void setLogFile(const std::string& filePath);
+    void setConsoleLogging(bool enabled);
     void closeLogFile();
     void logMessage(const std::string& message);
 
@@ -98,6 +99,7 @@ private:
 
     std::ofstream logFile;
     std::mutex fileMutex;
+    bool consoleLogging = false;
 };
 
 // Stream class to allow chaining with << operator

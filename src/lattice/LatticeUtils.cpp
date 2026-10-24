@@ -86,12 +86,23 @@ void Logger::closeLogFile()
     }
 }
 
+void Logger::setConsoleLogging(bool enabled)
+{
+    std::lock_guard<std::mutex> lock(fileMutex);
+    consoleLogging = enabled;
+}
+
 void Logger::logMessage(const std::string& message)
 {
     std::lock_guard<std::mutex> lock(fileMutex);
 
-    // Log to console
-    std::cout << message << std::endl;
+    // Log to console. Writing to std::cout can block if the process's stdout
+    // is a pipe that nobody drains (e.g. a plugin host's scan process), so
+    // this is opt-in: standalone apps enable it, plugins leave it off.
+    if (consoleLogging)
+    {
+        std::cout << message << std::endl;
+    }
 
     // Log to file if open
     if (logFile.is_open())
