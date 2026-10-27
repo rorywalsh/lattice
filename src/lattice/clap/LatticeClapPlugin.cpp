@@ -1,5 +1,6 @@
 #include "LatticeClapPlugin.h"
 #include "../LatticeProcessor.h"
+#include <cmath>
 #include <nlohmann/json.hpp>
 #include PLUGIN_INFO_HEADER // Include the dynamically generated header
 
@@ -162,10 +163,15 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
   };
 
   processor.requestGuiResize = [this](uint32_t width, uint32_t height) -> bool {
+    // The requested size comes from the web UI in logical (CSS) pixels, but
+    // the host expects physical pixels.
+    const uint32_t physicalW = toPhysical(width);
+    const uint32_t physicalH = toPhysical(height);
+
     if (auto *host = _host.host()) {
       if (auto *gui =
               (const clap_host_gui *)host->get_extension(host, CLAP_EXT_GUI)) {
-        return gui->request_resize(host, width, height);
+        return gui->request_resize(host, physicalW, physicalH);
       }
     }
     return false;
@@ -175,7 +181,10 @@ LatticeClapPlugin::LatticeClapPlugin(const clap_host *host,
     // Directly call guiSetSize to resize the webview
     // This is needed for hosts that accept resize but don't call guiSetSize
     // back
-    guiSetSize(width, height);
+    // The size comes from the web UI in logical (CSS) pixels.
+    currentWidth = width;
+    currentHeight = height;
+    applyScaledSize();
   };
 
 #ifdef LATTICE_LINUX
@@ -889,7 +898,11 @@ std::string LatticeClapPlugin::createTempFile(const char *path) {
 bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                                   bool /*isFloating*/) noexcept {
 #ifdef LATTICE_LINUX
-  guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
+  currentWidth = static_cast<uint32_t>(processor.getEditorWidth());
+  currentHeight = static_cast<uint32_t>(processor.getEditorHeight());
+  physicalWidth = currentWidth;
+  physicalHeight = currentHeight;
+  sizeSetByHost = false;
   auto resourceDir = processor.getMountPoint().empty()
                          ? lattice::File::getResourceDirFromBundle()
                          : processor.getMountPoint();
@@ -897,7 +910,13 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
   startTimer();
   return true;
 #else
-  guiSetSize(processor.getEditorWidth(), processor.getEditorHeight());
+  // The editor size is in logical (CSS) pixels, so store it as such and work
+  // out the physical size that the host needs to know about.
+  currentWidth = static_cast<uint32_t>(processor.getEditorWidth());
+  currentHeight = static_cast<uint32_t>(processor.getEditorHeight());
+  sizeSetByHost = false;
+  physicalWidth = toPhysical(currentWidth);
+  physicalHeight = toPhysical(currentHeight);
 
   try {
 
@@ -1161,12 +1180,121 @@ void LatticeClapPlugin::guiDestroy() noexcept {
 #endif
 }
 
-bool LatticeClapPlugin::guiSetScale(double) noexcept { return true; }
+bool LatticeClapPlugin::guiSetScale(double scale) noexcept {
+#if LATTICE_WINDOWS
+  // The host is telling us the absolute GUI scaling factor. Store it so that
+  // the editor window can be sized in physical pixels which match what the
+  // host expects on high DPI displays.
+  hostScale = (scale > 0.0) ? scale : 1.0;
+  hostScaleProvided = true;
+
+  // Re-apply the size with the new scale factor so the window follows the
+  // host straight away (hosts may call set_scale after the view is shown).
+  applyScaledSize();
+#else
+  // The macOS and Linux window APIs work in logical pixels, so there is no
+  // scaling to apply here.
+  (void)scale;
+#endif
+
+  return true;
+}
+
+double LatticeClapPlugin::getEffectiveScale() const {
+#if LATTICE_WINDOWS
+  // The OS reported scale factor is looked up lazily and then cached, since
+  // the DPI of the host's editor frame does not change while the view is
+  // alive (hosts tell us about that via set_scale).
+  auto osScaleValue = [this]() {
+    if (osScale <= 0.0)
+      osScale = queryOSScale();
+
+    return osScale;
+  };
+
+  // Preference is taken from the processor so that hosts/apps can opt in to
+  // using the OS reported DPI instead of the host supplied value.
+  if (processor.getScaleSource() == lattice::Processor::ScaleSource::OS)
+    return osScaleValue();
+
+  // Prefer the host supplied scale factor. If the host never sent one, fall
+  // back to the OS reported scale so that the UI still lines up with the
+  // rest of the host UI on high DPI displays.
+  if (hostScaleProvided)
+    return hostScale;
+
+  return osScaleValue();
+#else
+  return 1.0;
+#endif
+}
+
+double LatticeClapPlugin::queryOSScale() const {
+#if LATTICE_WINDOWS
+  // Ask Windows for the DPI of the parent window (the host's editor frame).
+  // GetDpiForWindow() is only available on Windows 10 1607 and later, so
+  // resolve it dynamically and fall back to 1.0 if it is unavailable.
+  HWND target = parentWindow;
+
+  if (target == nullptr && webview)
+    target = static_cast<HWND>(webview->getViewHandle());
+
+  if (target != nullptr) {
+    using GetDpiForWindowFn = UINT(WINAPI *)(HWND);
+    static auto getDpiForWindow = reinterpret_cast<GetDpiForWindowFn>(
+        ::GetProcAddress(::GetModuleHandleW(L"user32.dll"),
+                         "GetDpiForWindow"));
+
+    if (getDpiForWindow != nullptr) {
+      UINT dpi = getDpiForWindow(target);
+      if (dpi > 0)
+        return static_cast<double>(dpi) / 96.0;
+    }
+  }
+#endif
+  return 1.0;
+}
+
+uint32_t LatticeClapPlugin::toPhysical(uint32_t logicalSize) const {
+  const double scale = getEffectiveScale();
+  if (scale <= 0.0)
+    return logicalSize;
+
+  return static_cast<uint32_t>(std::lround(logicalSize * scale));
+}
+
+uint32_t LatticeClapPlugin::toLogical(uint32_t physicalSize) const {
+  const double scale = getEffectiveScale();
+  if (scale <= 0.0)
+    return physicalSize;
+
+  return static_cast<uint32_t>(std::lround(physicalSize / scale));
+}
+
+void LatticeClapPlugin::applyScaledSize() {
+  sizeSetByHost = false;
+  physicalWidth = toPhysical(currentWidth);
+  physicalHeight = toPhysical(currentHeight);
+
+  // Push the new physical size out to the native window and let the web UI
+  // know that it needs to reflow.
+  resizeWindowTo(physicalWidth, physicalHeight);
+}
 
 bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept {
-  currentWidth = width;
-  currentHeight = height;
+  // CLAP uses physical pixels for the win32/x11 window APIs, so the size
+  // coming in from the host is already in physical pixels. Keep the logical
+  // (CSS) size around as well since that is what the web UI works in.
+  physicalWidth = width;
+  physicalHeight = height;
+  currentWidth = toLogical(width);
+  currentHeight = toLogical(height);
+  sizeSetByHost = true;
 
+  return resizeWindowTo(width, height);
+}
+
+bool LatticeClapPlugin::resizeWindowTo(uint32_t width, uint32_t height) noexcept {
 #ifdef LATTICE_LINUX
   // TODO: Send resize message to Linux webview process
   return true;
@@ -1223,8 +1351,17 @@ bool LatticeClapPlugin::guiSetSize(uint32_t width, uint32_t height) noexcept {
 }
 
 bool LatticeClapPlugin::guiGetSize(uint32_t *width, uint32_t *height) noexcept {
-  *width = currentWidth;
-  *height = currentHeight;
+  // Report the size in physical pixels, which is what CLAP expects for the
+  // win32 and x11 window APIs. The size is recalculated here since the scale
+  // factor may only have become known after the view was created (hosts
+  // either send us their scale factor or we work it out from the OS).
+  if (!sizeSetByHost) {
+    physicalWidth = toPhysical(currentWidth);
+    physicalHeight = toPhysical(currentHeight);
+  }
+
+  *width = physicalWidth;
+  *height = physicalHeight;
   return true;
 }
 
@@ -1259,6 +1396,14 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       auto *child = static_cast<HWND>(webview->getViewHandle());
       auto *parent = static_cast<::HWND>(window->win32);
 
+      // Store parent window for key forwarding via sendKeyEventToHost JS
+      // binding, and for querying the OS DPI scale factor.
+      parentWindow = parent;
+
+      // Pick up the DPI scale factor of the host's editor frame. This is
+      // used as a fallback for hosts that never send us a scale factor.
+      osScale = queryOSScale();
+
       RECT parentRect;
       ::GetClientRect(parent, &parentRect);
       int parentWidth = parentRect.right - parentRect.left;
@@ -1271,9 +1416,13 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       ::SetParent(child, parent);
       ::ShowWindow(child, SW_SHOW);
 
-      // Store parent window for key forwarding via sendKeyEventToHost JS
-      // binding
-      parentWindow = parent;
+      // The host frame is sized in physical pixels, so keep the logical size
+      // in step with it.
+      physicalWidth = static_cast<uint32_t>(parentWidth);
+      physicalHeight = static_cast<uint32_t>(parentHeight);
+      currentWidth = toLogical(physicalWidth);
+      currentHeight = toLogical(physicalHeight);
+      sizeSetByHost = true;
 
       return true;
     }

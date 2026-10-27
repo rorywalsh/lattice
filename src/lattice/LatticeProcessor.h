@@ -130,6 +130,17 @@ public:
     void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
     int getEditorWidth() const { return editorWidth; }
     int getEditorHeight() const { return editorHeight; }
+
+    // Where the plugin UI gets its DPI scale factor from.
+    // Host: use the scale factor sent by the host (CLAP gui.set_scale / VST3
+    //       IPlugViewContentScaleSupport::setContentScaleFactor), falling back
+    //       to the OS DPI if the host never sends one.
+    // OS:   always use the OS reported DPI scale factor and ignore any value
+    //       sent by the host.
+    enum class ScaleSource { Host, OS };
+
+    void setScaleSource(ScaleSource source) { scaleSource = source; }
+    ScaleSource getScaleSource() const { return scaleSource; }
     
     // Use this to set a custom mount point - otherwise use bundled Resources folder
     void setMountPoint(const std::string& mntPoint){ customMountPoint = mntPoint; }
@@ -259,6 +270,7 @@ public:
 private:
     int editorWidth = 800;
     int editorHeight = 800;
+    ScaleSource scaleSource = ScaleSource::Host;
     std::vector<Parameter> parameters;
     std::unordered_map<std::string, Parameter*> parameterMap;
     std::deque<NoteEvent> noteEvents;
