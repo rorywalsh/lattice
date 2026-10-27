@@ -159,11 +159,54 @@ private:
   // Create a file path to the Linux webview process
   static std::string createTempFile(const char *path_template);
 
+  // The editor size in logical (CSS) pixels. This is the size the web UI is
+  // laid out at and the value the Csound side works with.
   uint32_t currentWidth = 800;  // Default width
   uint32_t currentHeight = 600; // Default height
 
+  // The size of the editor window in physical pixels. This is what gets
+  // reported to the host and what the native window is actually sized to.
+  uint32_t physicalWidth = 800;
+  uint32_t physicalHeight = 600;
+
+  // True when the host has explicitly sized the view, in which case we report
+  // back the size it asked for rather than recalculating it.
+  bool sizeSetByHost = false;
+
+  // Scale factor sent by the host via CLAP gui.set_scale (or VST3
+  // IPlugViewContentScaleSupport::setContentScaleFactor).
+  double hostScale = 1.0;
+
+  // True once the host has sent us a scale factor.
+  bool hostScaleProvided = false;
+
+  // Scale factor reported by the operating system (DPI aware hosts only).
+  // Zero means "not looked up yet".
+  mutable double osScale = 0.0;
+
   // Utility functions for parameter handling
   void sendParameterValueToHost(clap_id paramId, double value) const noexcept;
+
+  // Returns the scale factor currently in use for sizing the editor window.
+  double getEffectiveScale() const;
+
+  // Queries the OS for the current DPI scale factor (Windows only, returns
+  // 1.0 everywhere else).
+  double queryOSScale() const;
+
+  // Converts a logical (CSS) size into a physical (pixel) size.
+  uint32_t toPhysical(uint32_t logicalSize) const;
+
+  // Converts a physical (pixel) size back into a logical (CSS) size.
+  uint32_t toLogical(uint32_t physicalSize) const;
+
+  // Applies the current logical size to the native window using the current
+  // scale factor and tells the web UI to reflow.
+  void applyScaledSize();
+
+  // Resizes the native window to the given physical (pixel) size and tells
+  // the web UI to reflow.
+  bool resizeWindowTo(uint32_t width, uint32_t height) noexcept;
 
   void startTimer();
   void stopTimer();
