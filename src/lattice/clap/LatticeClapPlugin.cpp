@@ -932,6 +932,13 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
     choc::ui::WebView::Options options;
     options.enableDebugMode = true;
     options.acceptsFirstMouseClick = true;
+    // Avoid a flash of white while the webview is loading its content: give
+    // the webview a transparent default background so the host window shows
+    // through until the form paints itself. On macOS this disables WKWebView's
+    // default white background; on Windows it sets WebView2's default
+    // background to transparent (see the WEBVIEW2_DEFAULT_BACKGROUND_COLOR
+    // environment variable below for the flicker-free path).
+    options.transparentBackground = true;
     options.webviewIsReady = [&](choc::ui::WebView &wv) {
       // Add JavaScript interface for parameter control
       wv.bind("sendMessageFromUI",
@@ -1153,6 +1160,16 @@ bool LatticeClapPlugin::guiCreate(const char * /*api*/,
       resource.mimeType = lattice::File::getMimeType(cleanPath);
       return resource;
     };
+
+#if LATTICE_WINDOWS
+    // WebView2 flashes white before the put_DefaultBackgroundColor API call
+    // (made by choc's transparentBackground path) takes effect. Setting the
+    // colour via the WEBVIEW2_DEFAULT_BACKGROUND_COLOR environment variable
+    // instead is read once at WebView2 environment creation, which avoids the
+    // flash entirely. Use a fully transparent background (alpha 0) to match the
+    // plugin's transparent form default. Alpha is encoded first: AARRGGBB.
+    SetEnvironmentVariableA("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "00000000");
+#endif
 
     webview = std::make_unique<choc::ui::WebView>(options);
 
