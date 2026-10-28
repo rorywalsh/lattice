@@ -9,3 +9,4 @@ src/lattice/LinuxWebviewProcess/webview_binary.h
 packages/
 .DS_Store
 .vscode/
+AGENTS.md
