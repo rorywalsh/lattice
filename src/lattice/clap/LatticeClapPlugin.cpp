@@ -897,6 +897,14 @@ std::string LatticeClapPlugin::createTempFile(const char *path) {
 
 bool LatticeClapPlugin::guiCreate(const char * /*api*/,
                                   bool /*isFloating*/) noexcept {
+  // Reset the per-view scale state. The display scale can change between
+  // editor opens (or the editor can move to a monitor with a different DPI), so
+  // the scale must be re-derived for each new view rather than reusing a value
+  // cached from a previous one.
+  hostScale = 1.0;
+  hostScaleProvided = false;
+  osScale = 0.0;
+
 #ifdef LATTICE_LINUX
   currentWidth = static_cast<uint32_t>(processor.getEditorWidth());
   currentHeight = static_cast<uint32_t>(processor.getEditorHeight());
@@ -1250,6 +1258,27 @@ double LatticeClapPlugin::queryOSScale() const {
       if (dpi > 0)
         return static_cast<double>(dpi) / 96.0;
     }
+  }
+
+  // No window handle is available yet. This happens on the first open during
+  // the initial get_size() call, which occurs before set_parent() hands us the
+  // host's editor frame. Falling back to the system DPI keeps the initial
+  // window size correct on high DPI displays instead of defaulting to 1.0
+  // (which made the editor open smaller than the host UI on first open, and
+  // only look right on subsequent opens once the scale was cached).
+  //
+  // This is exact for single-monitor setups and a reasonable first guess on
+  // multi-monitor setups; once the host frame is attached the real per-monitor
+  // DPI is re-queried via GetDpiForWindow above.
+  using GetDpiForSystemFn = UINT(WINAPI *)();
+  static auto getDpiForSystem = reinterpret_cast<GetDpiForSystemFn>(
+      ::GetProcAddress(::GetModuleHandleW(L"user32.dll"),
+                       "GetDpiForSystem"));
+
+  if (getDpiForSystem != nullptr) {
+    UINT dpi = getDpiForSystem();
+    if (dpi > 0)
+      return static_cast<double>(dpi) / 96.0;
   }
 #endif
   return 1.0;
