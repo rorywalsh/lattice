@@ -1442,6 +1442,34 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       auto *child = static_cast<HWND>(webview->getViewHandle());
       auto *parent = static_cast<::HWND>(window->win32);
 
+      // The choc HWND's window class has no background brush, so it paints the
+      // raw (white) window background while WebView2 is still cold-starting.
+      // Give it a brush matching the editor's background colour so the
+      // pre-content flash matches the editor instead of white/black. choc
+      // registers a unique class per webview, so this only affects this
+      // instance.
+      auto hexToColour = [](const std::string& s) -> COLORREF {
+        std::string hex = s;
+        if (!hex.empty() && hex.front() == '#')
+          hex.erase(hex.begin());
+        auto nibble = [](char c) -> int {
+          if (c >= '0' && c <= '9') return c - '0';
+          if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+          if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+          return 0;
+        };
+        if (hex.size() >= 6)
+          return RGB(nibble(hex[0]) * 16 + nibble(hex[1]),
+                     nibble(hex[2]) * 16 + nibble(hex[3]),
+                     nibble(hex[4]) * 16 + nibble(hex[5]));
+        return RGB(0x00, 0x4c, 0x6b); // default editor colour
+      };
+
+      HBRUSH editorBrush =
+          ::CreateSolidBrush(hexToColour(processor.getEditorBackgroundColour()));
+      ::SetClassLongPtr(child, GCLP_HBRBACKGROUND,
+                        reinterpret_cast<LONG_PTR>(editorBrush));
+
       // Store parent window for key forwarding via sendKeyEventToHost JS
       // binding, and for querying the OS DPI scale factor.
       parentWindow = parent;
@@ -1450,11 +1478,11 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       // used as a fallback for hosts that never send us a scale factor.
       osScale = queryOSScale();
 
-      RECT parentRect;
-      ::GetClientRect(parent, &parentRect);
-      int parentWidth = parentRect.right - parentRect.left;
-      int parentHeight = parentRect.bottom - parentRect.top;
-      ::SetWindowPos(child, NULL, 0, 0, parentWidth, parentHeight,
+      // Embed the child window, size it to the editor's physical size (NOT the
+      // parent's client rect, which is a small placeholder in hosts like
+      // Ableton Live 10), and show it.
+      ::SetWindowPos(child, NULL, 0, 0, static_cast<int>(physicalWidth),
+                     static_cast<int>(physicalHeight),
                      SWP_NOZORDER | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
 
       ::InvalidateRect(child, NULL, false);
@@ -1462,13 +1490,11 @@ bool LatticeClapPlugin::guiSetParent(const clap_window *window) noexcept {
       ::SetParent(child, parent);
       ::ShowWindow(child, SW_SHOW);
 
-      // The host frame is sized in physical pixels, so keep the logical size
-      // in step with it.
-      physicalWidth = static_cast<uint32_t>(parentWidth);
-      physicalHeight = static_cast<uint32_t>(parentHeight);
-      currentWidth = toLogical(physicalWidth);
-      currentHeight = toLogical(physicalHeight);
-      sizeSetByHost = true;
+      // NOTE: do not adopt the parent's client-rect size here. Some hosts
+      // (notably Ableton Live 10) hand set_parent a small placeholder window
+      // before they have sized the editor, and adopting it would overwrite the
+      // real editor size and lock the plugin to the placeholder. guiGetSize()
+      // keeps reporting the editor size, and the host resizes via set_size.
 
       return true;
     }

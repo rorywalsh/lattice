@@ -131,6 +131,12 @@ public:
     int getEditorWidth() const { return editorWidth; }
     int getEditorHeight() const { return editorHeight; }
 
+    // Background colour of the plugin editor (hex string like "#004c6b").
+    // Used to paint the webview host window so it matches the editor UI colour
+    // instead of flashing white/black while the WebView2 content loads.
+    void setEditorBackgroundColour(const std::string& c) { editorBackgroundColour = c; }
+    const std::string& getEditorBackgroundColour() const { return editorBackgroundColour; }
+
     // Where the plugin UI gets its DPI scale factor from.
     // Host: use the scale factor sent by the host (CLAP gui.set_scale / VST3
     //       IPlugViewContentScaleSupport::setContentScaleFactor), falling back
@@ -270,6 +276,7 @@ public:
 private:
     int editorWidth = 800;
     int editorHeight = 800;
+    std::string editorBackgroundColour = "#004c6b";
     ScaleSource scaleSource = ScaleSource::Host;
     std::vector<Parameter> parameters;
     std::unordered_map<std::string, Parameter*> parameterMap;
